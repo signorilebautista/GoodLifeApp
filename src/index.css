@@ -4,6 +4,11 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+    --app-font-size: 16px;
+    --app-font-weight: 400;
+}
+
 @layer base {
     * {
         @apply box-border;
@@ -12,11 +17,65 @@
     body {
         @apply m-0 p-0 font-sans antialiased;
         @apply text-gray-900 bg-white;
+        font-size: var(--app-font-size) !important;
+        font-weight: var(--app-font-weight) !important;
     }
 
     #root {
         @apply min-h-screen;
     }
+}
+
+/* Dark mode */
+html.dark body,
+html.dark #root {
+    background-color: #121212 !important;
+    color: #E5E7EB !important;
+}
+
+html.dark header {
+    background-color: #0D47A1 !important;
+}
+
+html.dark aside {
+    background-color: #1E1E1E !important;
+    border-color: #333 !important;
+}
+
+html.dark main {
+    background-color: #2C2C2C !important;
+}
+
+html.dark div[style*="background-color: white"],
+html.dark div[style*="backgroundColor: white"],
+html.dark div[style*="background: white"] {
+    background-color: #1E1E1E !important;
+}
+
+html.dark * {
+    border-color: #444 !important;
+}
+
+html.dark p,
+html.dark span,
+html.dark h1,
+html.dark h2,
+html.dark h3,
+html.dark button,
+html.dark input,
+html.dark label {
+    color: inherit;
+}
+
+html.dark input {
+    background-color: #2A2A2A !important;
+    color: #E5E7EB !important;
+    border-color: #555 !important;
+}
+
+/* High contrast */
+html.high-contrast #root {
+    filter: contrast(1.5);
 }
 
 @layer components {

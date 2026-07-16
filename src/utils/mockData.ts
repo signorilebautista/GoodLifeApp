@@ -1,4 +1,14 @@
-import { Service, Member, Schedule, TrainingBlock } from '../types/types';
+import type { Service, Member, Schedule, TrainingBlock } from '../types/types';
+
+export interface AppUser {
+    username: string;
+    password: string;
+    role: 'admin' | 'user';
+}
+
+export const appUsers: AppUser[] = [
+    { username: 'admin', password: 'admin', role: 'admin' },
+];
 
 export const mockServices: Service[] = [
     { id: '1', name: 'Rutina Deportiva', price: 25000, type: 'deportiva' },
