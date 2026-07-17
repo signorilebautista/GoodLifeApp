@@ -1,6 +1,6 @@
-﻿import React, { useRef, useState } from 'react';
-import { Users, Calendar, FileText, BarChart3, Settings, LogOut, UserPlus, LogIn, CheckCircle, XCircle, GraduationCap, Home } from 'lucide-react';
-import logo from '../assets/logo.png';
+import React, { useRef, useState } from 'react';
+import { LogIn, CheckCircle, XCircle } from 'lucide-react';
+import AppShell from '../components/AppShell';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
@@ -17,18 +17,6 @@ interface IngresoResult {
     mensaje: string;
     timestamp: Date;
 }
-
-const menuItems = [
-    { icon: Home, label: 'Menú', path: '/menu-principal' },
-    { icon: Users, label: 'Socios', path: '/socios' },
-    { icon: Calendar, label: 'Turnero', path: '/turnero' },
-    { icon: LogIn, label: 'Ingreso', path: '/ingreso' },
-    { icon: FileText, label: 'Planes', path: '/planes' },
-    { icon: BarChart3, label: 'Estadísticas', path: '/estadisticas' },
-    { icon: GraduationCap, label: 'Profesores', path: '/profesores' },
-    { icon: UserPlus, label: 'Agregar', path: '/crear-cuenta' },
-    { icon: Settings, label: 'Configuraciones', path: '/configuraciones' },
-];
 
 const Ingreso: React.FC<IngresoProps> = ({ onLogout, onNavigate }) => {
     const [dni, setDni] = useState('');
@@ -66,130 +54,88 @@ const Ingreso: React.FC<IngresoProps> = ({ onLogout, onNavigate }) => {
         d.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
     return (
-        <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-            <header style={{ backgroundColor: '#1976D2', height: '80px', display: 'flex', alignItems: 'center', padding: '0 24px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <img src={logo} alt="Good Life Center" style={{ height: '48px', width: '48px' }} />
-                    <h1 style={{ color: 'white', fontSize: '24px', fontWeight: 'bold', letterSpacing: '0.05em', margin: 0 }}>GOOD LIFE CENTER</h1>
-                </div>
-            </header>
-
-            <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-                <aside style={{ width: '220px', backgroundColor: 'white', display: 'flex', flexDirection: 'column', borderRight: '1px solid #D1D5DB' }}>
-                    <nav style={{ flex: 1, padding: '8px 0' }}>
-                        {menuItems.map(item => (
-                            <button key={item.label} onClick={() => item.path !== '/ingreso' && onNavigate(item.path)}
-                                style={{
-                                    width: '100%', display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 20px',
-                                    color: item.path === '/ingreso' ? '#1976D2' : '#374151',
-                                    backgroundColor: item.path === '/ingreso' ? '#EFF6FF' : 'transparent',
-                                    border: 'none', cursor: item.path === '/ingreso' ? 'default' : 'pointer',
-                                    fontSize: '16px', textAlign: 'left', fontWeight: item.path === '/ingreso' ? '600' : '400',
-                                }}
-                                onMouseEnter={e => { if (item.path !== '/ingreso') e.currentTarget.style.backgroundColor = '#F3F4F6'; }}
-                                onMouseLeave={e => { if (item.path !== '/ingreso') e.currentTarget.style.backgroundColor = 'transparent'; }}>
-                                <item.icon size={20} />
-                                <span>{item.label}</span>
-                            </button>
-                        ))}
-                    </nav>
-                    <div style={{ borderTop: '1px solid #D1D5DB' }}>
-                        <button onClick={onLogout}
-                            style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 20px', color: '#374151', backgroundColor: 'transparent', border: 'none', cursor: 'pointer', fontSize: '16px', textAlign: 'left' }}
-                            onMouseEnter={e => e.currentTarget.style.backgroundColor = '#F3F4F6'}
-                            onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}>
-                            <LogOut size={20} />
-                            <span>Cerrar Sesión</span>
+        <AppShell onLogout={onLogout} onNavigate={onNavigate} activePath="/ingreso">
+            <div className="w-full max-w-lg flex flex-col gap-6 items-center pt-4">
+                {/* Input card */}
+                <div className="bg-white rounded-2xl shadow-card p-8 w-full animate-fadeIn">
+                    <h2 className="text-xl font-bold text-gray-900 mb-5 flex items-center gap-2.5">
+                        <LogIn size={22} className="text-primary-600" /> Registrar Ingreso
+                    </h2>
+                    <label className="text-sm font-medium text-gray-600 block mb-2">DNI del socio</label>
+                    <div className="flex gap-2.5">
+                        <input
+                            ref={inputRef}
+                            autoFocus
+                            value={dni}
+                            onChange={e => setDni(e.target.value)}
+                            onKeyDown={handleKeyDown}
+                            placeholder="Ej: 12345678"
+                            className="flex-1 px-4 py-3 border-2 border-gray-200 bg-gray-50 rounded-xl text-lg outline-none tracking-wide focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary/20 transition-all duration-150"
+                        />
+                        <button
+                            onClick={handleIngreso}
+                            disabled={loading || !dni.trim()}
+                            className={`px-6 rounded-xl text-[15px] font-semibold text-white transition-all duration-150 active:scale-95 ${loading || !dni.trim() ? 'bg-primary-300 cursor-not-allowed' : 'bg-primary-500 hover:bg-primary-600 shadow-md shadow-primary-500/30'}`}
+                        >
+                            {loading ? '...' : 'Ingresar'}
                         </button>
                     </div>
-                </aside>
+                    <p className="text-xs text-gray-400 mt-2">Presioná Enter o el botón para registrar.</p>
+                </div>
 
-                <main style={{ flex: 1, backgroundColor: '#CCCCCC', padding: '40px 28px', overflowY: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '24px' }}>
-                    {/* Input card */}
-                    <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '32px', width: '100%', maxWidth: '480px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-                        <h2 style={{ fontSize: '20px', fontWeight: '700', color: '#111827', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                            <LogIn size={22} color="#1976D2" /> Registrar Ingreso
-                        </h2>
-                        <label style={{ fontSize: '14px', fontWeight: '500', color: '#374151', display: 'block', marginBottom: '8px' }}>DNI del socio</label>
-                        <div style={{ display: 'flex', gap: '10px' }}>
-                            <input
-                                ref={inputRef}
-                                autoFocus
-                                value={dni}
-                                onChange={e => setDni(e.target.value)}
-                                onKeyDown={handleKeyDown}
-                                placeholder="Ej: 12345678"
-                                style={{ flex: 1, padding: '12px 14px', border: '2px solid #D1D5DB', borderRadius: '8px', fontSize: '18px', outline: 'none', letterSpacing: '0.05em' }}
-                                onFocus={e => e.target.style.borderColor = '#1976D2'}
-                                onBlur={e => e.target.style.borderColor = '#D1D5DB'}
-                            />
-                            <button
-                                onClick={handleIngreso}
-                                disabled={loading || !dni.trim()}
-                                style={{
-                                    padding: '12px 22px', borderRadius: '8px', border: 'none', cursor: loading || !dni.trim() ? 'not-allowed' : 'pointer',
-                                    backgroundColor: loading || !dni.trim() ? '#93C5FD' : '#1976D2', color: 'white', fontSize: '15px', fontWeight: '600',
-                                }}>
-                                {loading ? '...' : 'Ingresar'}
-                            </button>
+                {/* Result */}
+                {result && (
+                    <div
+                        className="bg-white rounded-2xl shadow-card p-7 w-full animate-popIn"
+                        style={{ borderLeft: `5px solid ${result.ok ? '#10B981' : '#EF4444'}` }}
+                    >
+                        <div className="flex items-start gap-3.5">
+                            {result.ok
+                                ? <CheckCircle size={36} className="text-emerald-500 shrink-0 mt-0.5" />
+                                : <XCircle size={36} className="text-red-500 shrink-0 mt-0.5 animate-shake" />
+                            }
+                            <div>
+                                {result.nombre && (
+                                    <p className="text-lg font-bold text-gray-900 mb-1">
+                                        {result.nombre} {result.apellido}
+                                    </p>
+                                )}
+                                <p className={`text-[15px] font-medium mb-1.5 ${result.ok ? 'text-emerald-800' : 'text-red-800'}`}>
+                                    {result.mensaje}
+                                </p>
+                                {result.ok && (
+                                    <div className={`inline-block rounded-md px-3 py-1 ${result.clasesRestantes > 0 ? 'bg-emerald-100' : 'bg-red-100'}`}>
+                                        <span className={`text-sm font-semibold ${result.clasesRestantes > 0 ? 'text-emerald-800' : 'text-red-800'}`}>
+                                            Clases restantes: {result.clasesRestantes}
+                                        </span>
+                                    </div>
+                                )}
+                                <p className="text-xs text-gray-400 mt-2">{formatTime(result.timestamp)}</p>
+                            </div>
                         </div>
-                        <p style={{ fontSize: '12px', color: '#9CA3AF', marginTop: '8px', margin: '8px 0 0 0' }}>Presioná Enter o el botón para registrar.</p>
                     </div>
+                )}
 
-                    {/* Result */}
-                    {result && (
-                        <div style={{
-                            backgroundColor: 'white', borderRadius: '12px', padding: '28px', width: '100%', maxWidth: '480px',
-                            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                            borderLeft: `5px solid ${result.ok ? '#10B981' : '#EF4444'}`,
-                        }}>
-                            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px' }}>
-                                {result.ok
-                                    ? <CheckCircle size={36} color="#10B981" style={{ flexShrink: 0, marginTop: '2px' }} />
-                                    : <XCircle size={36} color="#EF4444" style={{ flexShrink: 0, marginTop: '2px' }} />
-                                }
-                                <div>
-                                    {result.nombre && (
-                                        <p style={{ fontSize: '18px', fontWeight: '700', color: '#111827', margin: '0 0 4px 0' }}>
-                                            {result.nombre} {result.apellido}
-                                        </p>
-                                    )}
-                                    <p style={{ fontSize: '15px', color: result.ok ? '#065F46' : '#991B1B', margin: '0 0 6px 0', fontWeight: '500' }}>
-                                        {result.mensaje}
-                                    </p>
-                                    {result.ok && (
-                                        <div style={{ display: 'inline-block', backgroundColor: result.clasesRestantes > 0 ? '#D1FAE5' : '#FEE2E2', borderRadius: '6px', padding: '4px 12px' }}>
-                                            <span style={{ fontSize: '14px', fontWeight: '600', color: result.clasesRestantes > 0 ? '#065F46' : '#991B1B' }}>
-                                                Clases restantes: {result.clasesRestantes}
-                                            </span>
-                                        </div>
-                                    )}
-                                    <p style={{ fontSize: '12px', color: '#9CA3AF', margin: '8px 0 0 0' }}>{formatTime(result.timestamp)}</p>
-                                </div>
+                {/* Último ingresado */}
+                {ultimo && result !== ultimo && (
+                    <div className="bg-white rounded-2xl shadow-card px-6 py-5 w-full animate-fadeIn">
+                        <p className="text-xs text-gray-500 font-semibold uppercase tracking-wide mb-2">Último ingresado</p>
+                        <div className="flex items-center gap-3">
+                            <div className="h-10 w-10 shrink-0 rounded-full bg-gradient-to-br from-emerald-400 to-primary-500 flex items-center justify-center text-white text-sm font-semibold shadow-sm">
+                                {`${ultimo.nombre[0] ?? ''}${ultimo.apellido[0] ?? ''}`.toUpperCase()}
+                            </div>
+                            <div>
+                                <p className="text-[15px] font-semibold text-gray-900">{ultimo.nombre} {ultimo.apellido}</p>
+                                <p className="text-xs text-gray-500 mt-0.5">
+                                    {ultimo.clasesRestantes} clase{ultimo.clasesRestantes !== 1 ? 's' : ''} restante{ultimo.clasesRestantes !== 1 ? 's' : ''} · {formatTime(ultimo.timestamp)}
+                                </p>
                             </div>
                         </div>
-                    )}
-
-                    {/* Último ingresado */}
-                    {ultimo && result !== ultimo && (
-                        <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '20px 24px', width: '100%', maxWidth: '480px', boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }}>
-                            <p style={{ fontSize: '12px', color: '#6B7280', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 8px 0' }}>Último ingresado</p>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'linear-gradient(135deg,#4ADE80,#3B82F6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px' }}>ðŸ‘¤</div>
-                                <div>
-                                    <p style={{ fontSize: '15px', fontWeight: '600', color: '#111827', margin: 0 }}>{ultimo.nombre} {ultimo.apellido}</p>
-                                    <p style={{ fontSize: '12px', color: '#6B7280', margin: '2px 0 0 0' }}>
-                                        {ultimo.clasesRestantes} clase{ultimo.clasesRestantes !== 1 ? 's' : ''} restante{ultimo.clasesRestantes !== 1 ? 's' : ''} Â· {formatTime(ultimo.timestamp)}
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-                </main>
+                    </div>
+                )}
             </div>
-        </div>
+        </AppShell>
     );
 };
 
 export default Ingreso;
-

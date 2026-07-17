@@ -11,6 +11,9 @@ export class Turnero {
   @PrimaryColumn({ type: 'time' })
   horario: string;
 
+  @Column({ name: 'horaFin', type: 'time', nullable: true })
+  horaFin: string;
+
   @Column({ type: 'boolean', nullable: true })
   estado: boolean;
 

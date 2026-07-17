@@ -25,6 +25,10 @@ export class CreateTurnoDto {
   @IsString()
   horario: string;
 
+  @IsOptional()
+  @IsString()
+  horaFin?: string;
+
   @IsInt()
   idSede: number;
 

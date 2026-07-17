@@ -1,4 +1,5 @@
-import { ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { ConflictException, Injectable, Logger, NotFoundException, OnModuleInit } from '@nestjs/common';
+import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Turnero } from './turnero.entity';
@@ -14,6 +15,7 @@ import { AuthService } from '../auth/auth.service';
 export interface TurnoConDetalle {
   dia: string;
   horario: string;
+  horaFin: string | null;
   idSede: number;
   sede: string | null;
   estado: boolean | null;
@@ -26,7 +28,7 @@ export interface TurnoConDetalle {
 }
 
 @Injectable()
-export class TurneroService {
+export class TurneroService implements OnModuleInit {
   private readonly logger = new Logger(TurneroService.name);
 
   constructor(
@@ -44,6 +46,11 @@ export class TurneroService {
     private readonly authService: AuthService,
   ) {}
 
+  /** Corre la limpieza también al arrancar el server, sin esperar a la próxima hora en punto. */
+  async onModuleInit(): Promise<void> {
+    await this.removeExpired();
+  }
+
   findAll(filters: { desde?: string; hasta?: string; profesor?: string }): Promise<TurnoConDetalle[]> {
     const qb = this.turneroRepository
       .createQueryBuilder('t')
@@ -57,6 +64,7 @@ export class TurneroService {
       .leftJoin(Actividad, 'a', 'a."idActividad" = t."idActividad"')
       .select('t.dia', 'dia')
       .addSelect('t.horario', 'horario')
+      .addSelect('t."horaFin"', 'horaFin')
       .addSelect('t."idSede"', 'idSede')
       .addSelect('s."nombreSede"', 'sede')
       .addSelect('t.estado', 'estado')
@@ -180,6 +188,7 @@ export class TurneroService {
           manager.create(Turnero, {
             dia: dto.dia,
             horario: dto.horario,
+            horaFin: dto.horaFin ?? null,
             idSede: dto.idSede,
             idActividad: dto.idActividad,
             cantReservas: dto.cantReservas ?? '0',
@@ -245,6 +254,7 @@ export class TurneroService {
           manager.create(Turnero, {
             dia: dto.dia,
             horario: dto.horario,
+            horaFin: dto.horaFin ?? null,
             idSede: dto.idSede,
             idActividad: dto.idActividad,
             cantReservas: dto.cantReservas ?? existing.cantReservas,
@@ -264,6 +274,7 @@ export class TurneroService {
           Turnero,
           { dia: dto.dia, horario: dto.horario, idSede: dto.idSede },
           {
+            horaFin: dto.horaFin ?? null,
             idActividad: dto.idActividad,
             cantReservas: dto.cantReservas ?? existing.cantReservas,
             estado: dto.estado ?? existing.estado,
@@ -290,6 +301,29 @@ export class TurneroService {
       if (!result.affected) {
         throw new NotFoundException('Turno no encontrado');
       }
+    });
+  }
+
+  /**
+   * Borra los turnos cuya fecha+hora de fin (o, si no tiene, hora de inicio)
+   * ya pasó hace más de 24hs. Corre cada hora; el criterio se evalúa en SQL
+   * para no depender de la zona horaria del proceso Node.
+   */
+  @Cron(CronExpression.EVERY_HOUR)
+  async removeExpired(): Promise<void> {
+    await this.turneroRepository.manager.transaction(async (manager) => {
+      const expired: { dia: string; horario: string; idSede: number }[] = await manager.query(
+        `SELECT dia, horario, "idSede" AS "idSede" FROM "Turnero"
+         WHERE (dia + COALESCE("horaFin", horario)) < (NOW() - INTERVAL '24 hours')`,
+      );
+      if (expired.length === 0) return;
+
+      for (const t of expired) {
+        await manager.delete(TurnoSocio, { dia: t.dia, horario: t.horario, idSede: t.idSede });
+        await manager.delete(TurneroProfesor, { dia: t.dia, horario: t.horario, idSede: t.idSede });
+        await manager.delete(Turnero, { dia: t.dia, horario: t.horario, idSede: t.idSede });
+      }
+      this.logger.log(`Turnos vencidos eliminados: ${expired.length}`);
     });
   }
 }

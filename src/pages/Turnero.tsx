@@ -1,6 +1,6 @@
-﻿import React, { useEffect, useMemo, useState } from 'react';
-import { Users, Calendar, FileText, BarChart3, Settings, LogOut, X, Search, LayoutGrid, List, CalendarDays, UserPlus, LogIn, GraduationCap, Home } from 'lucide-react';
-import logo from '../assets/logo.png';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Calendar, X, Search, LayoutGrid, List, CalendarDays } from 'lucide-react';
+import AppShell from '../components/AppShell';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
@@ -12,6 +12,7 @@ interface TurneroProps {
 interface Turno {
     dia: string;
     horario: string;
+    horaFin: string | null;
     idSede: number;
     sede: string | null;
     estado: boolean | null;
@@ -44,12 +45,13 @@ type ViewMode = 'grid' | 'list' | 'calendar';
 type TurnoForm = {
     dia: string;
     horario: string;
+    horaFin: string;
     idSede: string;
     idActividad: string;
     dniProfesor: string;
 };
 
-const emptyForm: TurnoForm = { dia: '', horario: '09:00', idSede: '', idActividad: '', dniProfesor: '' };
+const emptyForm: TurnoForm = { dia: '', horario: '09:00', horaFin: '', idSede: '', idActividad: '', dniProfesor: '' };
 
 const formatDia = (iso: string) => {
     const d = new Date(iso);
@@ -57,6 +59,9 @@ const formatDia = (iso: string) => {
 };
 
 const diaKey = (iso: string) => new Date(iso).toISOString().slice(0, 10);
+
+const inputClass = 'w-full px-3 py-2.5 border border-gray-200 bg-gray-50 rounded-lg text-sm outline-none focus:ring-2 focus:ring-primary focus:border-transparent focus:bg-white transition-all duration-150';
+const labelClass = 'block text-xs font-medium text-gray-600 mb-1.5';
 
 const Turnero: React.FC<TurneroProps> = ({ onLogout, onNavigate }) => {
     const [turnos, setTurnos] = useState<Turno[]>([]);
@@ -76,18 +81,6 @@ const Turnero: React.FC<TurneroProps> = ({ onLogout, onNavigate }) => {
 
     const [showNewModal, setShowNewModal] = useState(false);
     const [newForm, setNewForm] = useState<TurnoForm>(emptyForm);
-
-    const menuItems = [
-        { icon: Home, label: 'Menú', active: false },
-        { icon: Users, label: 'Socios', active: false },
-        { icon: Calendar, label: 'Turnero', active: true },
-        { icon: LogIn, label: 'Ingreso', active: false },
-        { icon: FileText, label: 'Planes', active: false },
-        { icon: BarChart3, label: 'Estadísticas', active: false },
-        { icon: GraduationCap, label: 'Profesores', active: false },
-        { icon: UserPlus, label: 'Agregar', active: false },
-        { icon: Settings, label: 'Configuraciones', active: false },
-    ];
 
     const extractErrorMessage = async (res: Response, fallback: string): Promise<string> => {
         try {
@@ -168,6 +161,7 @@ const Turnero: React.FC<TurneroProps> = ({ onLogout, onNavigate }) => {
         setEditForm({
             dia: diaKey(turno.dia),
             horario: turno.horario,
+            horaFin: turno.horaFin ?? '',
             idSede: String(turno.idSede),
             idActividad: String(turno.idActividad ?? ''),
             dniProfesor: turno.profesorDni ?? '',
@@ -183,6 +177,7 @@ const Turnero: React.FC<TurneroProps> = ({ onLogout, onNavigate }) => {
                 body: JSON.stringify({
                     dia: newForm.dia,
                     horario: newForm.horario,
+                    horaFin: newForm.horaFin || undefined,
                     idSede: Number(newForm.idSede),
                     idActividad: Number(newForm.idActividad),
                     dniProfesor: newForm.dniProfesor,
@@ -209,6 +204,7 @@ const Turnero: React.FC<TurneroProps> = ({ onLogout, onNavigate }) => {
                     oldIdSede: selectedTurno.idSede,
                     dia: editForm.dia,
                     horario: editForm.horario,
+                    horaFin: editForm.horaFin || undefined,
                     idSede: Number(editForm.idSede),
                     idActividad: Number(editForm.idActividad),
                     dniProfesor: editForm.dniProfesor,
@@ -241,195 +237,136 @@ const Turnero: React.FC<TurneroProps> = ({ onLogout, onNavigate }) => {
     const profesorLabel = (t: Turno) =>
         t.profesorNombre ? `${t.profesorNombre} ${t.profesorApellido ?? ''}`.trim() : 'Sin profesor';
 
-    const renderTurnoCard = (t: Turno) => (
+    const horarioLabel = (t: Turno) =>
+        t.horaFin ? `${t.horario.slice(0, 5)} - ${t.horaFin.slice(0, 5)}` : t.horario.slice(0, 5);
+
+    const renderTurnoCard = (t: Turno, index = 0) => (
         <div
             key={`${t.dia}-${t.horario}-${t.idSede}`}
             onClick={() => openDetail(t)}
-            style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '16px 20px',
-                border: '2px solid #111827',
-                borderRadius: '8px',
-                backgroundColor: 'white',
-                cursor: 'pointer',
-            }}
+            className="flex items-center justify-between px-5 py-4 border-2 border-gray-900 rounded-xl bg-white cursor-pointer hover:bg-gray-50 hover:-translate-y-0.5 transition-all duration-200 animate-fadeIn"
+            style={{ animationDelay: `${Math.min(index, 10) * 30}ms` }}
         >
-            <div style={{ display: 'flex', gap: '40px', alignItems: 'center', flex: 1 }}>
-                <span style={{ fontSize: '18px', fontWeight: '600', color: '#111827', minWidth: '60px' }}>
-                    {t.horario.slice(0, 5)}
+            <div className="flex gap-10 items-center flex-1">
+                <span className="text-lg font-semibold text-gray-900 min-w-[110px]">
+                    {horarioLabel(t)}
                 </span>
-                <span style={{ fontSize: '16px', color: '#111827', flex: 1 }}>Profe: {profesorLabel(t)}</span>
-                <span style={{ fontSize: '16px', color: '#111827', minWidth: '140px' }}>Sede: {t.sede ?? '-'}</span>
+                <span className="text-[15px] text-gray-900 flex-1">Profe: {profesorLabel(t)}</span>
+                <span className="text-[15px] text-gray-900 min-w-[140px]">Sede: {t.sede ?? '-'}</span>
             </div>
         </div>
     );
 
     return (
-        <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-            <header style={{ backgroundColor: '#1976D2', height: '80px', display: 'flex', alignItems: 'center', padding: '0 24px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <img src={logo} alt="Good Life Center" style={{ height: '48px', width: '48px' }} />
-                    <h1 style={{ color: 'white', fontSize: '24px', fontWeight: 'bold', letterSpacing: '0.05em', margin: 0 }}>
-                        GOOD LIFE CENTER
-                    </h1>
-                </div>
-            </header>
+        <>
+            <AppShell onLogout={onLogout} onNavigate={onNavigate} activePath="/turnero">
+                {/* Toolbar */}
+                <div className="flex gap-3 mb-6 items-center flex-wrap w-full max-w-6xl animate-fadeIn">
+                    <div className="flex items-center gap-2 bg-white rounded-lg px-3 py-2 shadow-card focus-within:ring-2 focus-within:ring-primary transition-all duration-150">
+                        <Calendar size={18} className="text-gray-400 shrink-0" />
+                        <input
+                            type="date"
+                            value={searchFecha}
+                            onChange={(e) => setSearchFecha(e.target.value)}
+                            className="outline-none text-sm bg-transparent"
+                        />
+                    </div>
 
-            <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-                <aside style={{ width: '220px', backgroundColor: 'white', display: 'flex', flexDirection: 'column', borderRight: '1px solid #D1D5DB' }}>
-                    <nav style={{ flex: 1, padding: '8px 0' }}>
-                        {menuItems.map((item, index) => (
+                    <div className="flex items-center gap-2 bg-white rounded-lg px-3 py-2 flex-1 min-w-[220px] shadow-card focus-within:ring-2 focus-within:ring-primary transition-all duration-150">
+                        <Search size={18} className="text-gray-400 shrink-0" />
+                        <input
+                            value={searchProfesor}
+                            onChange={(e) => setSearchProfesor(e.target.value)}
+                            placeholder="Buscar por profesor..."
+                            className="outline-none text-sm flex-1 bg-transparent"
+                        />
+                    </div>
+
+                    <div className="flex gap-1 bg-white rounded-lg p-1 shadow-card">
+                        {([
+                            ['grid', LayoutGrid, 'Vista grilla'],
+                            ['list', List, 'Vista lista'],
+                            ['calendar', CalendarDays, 'Vista calendario'],
+                        ] as [ViewMode, typeof LayoutGrid, string][]).map(([mode, Icon, title]) => (
                             <button
-                                key={index}
-                                onClick={() => {
-                                    if (item.label === 'Turnero') return;
-                                    if (item.label === 'Socios') onNavigate('/socios');
-                                    else if (item.label === 'Planes') onNavigate('/planes');
-                                    else if (item.label === 'Estadísticas') onNavigate('/estadisticas');
-                                    else if (item.label === 'Ingreso') onNavigate('/ingreso');
-                                    else if (item.label === 'Profesores') onNavigate('/profesores');
-                                    else if (item.label === 'Agregar') onNavigate('/crear-cuenta');
-                                    else if (item.label === 'Configuraciones') onNavigate('/configuraciones');
-                                    else onNavigate('/menu-principal');
-                                }}
-                                style={{
-                                    width: '100%', display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 20px',
-                                    color: '#374151', backgroundColor: item.active ? '#F3F4F6' : 'transparent', border: 'none',
-                                    cursor: 'pointer', fontSize: '16px', textAlign: 'left',
-                                }}
-                                onMouseEnter={(e) => !item.active && (e.currentTarget.style.backgroundColor = '#F3F4F6')}
-                                onMouseLeave={(e) => !item.active && (e.currentTarget.style.backgroundColor = 'transparent')}
+                                key={mode}
+                                onClick={() => setViewMode(mode)}
+                                title={title}
+                                className={`px-2.5 py-1.5 rounded-md transition-all duration-150 flex items-center ${viewMode === mode ? 'bg-primary-500 text-white shadow-sm' : 'text-gray-500 hover:bg-gray-100'}`}
                             >
-                                <item.icon size={20} />
-                                <span>{item.label}</span>
+                                <Icon size={18} />
                             </button>
                         ))}
-                    </nav>
-
-                    <div style={{ borderTop: '1px solid #D1D5DB' }}>
-                        <button
-                            onClick={onLogout}
-                            style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 20px', color: '#374151', backgroundColor: 'transparent', border: 'none', cursor: 'pointer', fontSize: '16px', textAlign: 'left' }}
-                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#F3F4F6'}
-                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                        >
-                            <LogOut size={20} />
-                            <span>Cerrar Sesión</span>
-                        </button>
-                    </div>
-                </aside>
-
-                <main style={{ flex: 1, backgroundColor: '#E5E7EB', padding: '24px', overflowY: 'auto' }}>
-                    {/* Toolbar */}
-                    <div style={{ display: 'flex', gap: '12px', marginBottom: '24px', alignItems: 'center', flexWrap: 'wrap' }}>
-                        {/* Fecha search */}
-                        <div style={{ display: 'flex', alignItems: 'center', backgroundColor: 'white', borderRadius: '6px', padding: '6px 12px', gap: '8px' }}>
-                            <Calendar size={18} color="#6B7280" />
-                            <input
-                                type="date"
-                                value={searchFecha}
-                                onChange={(e) => setSearchFecha(e.target.value)}
-                                style={{ border: 'none', outline: 'none', fontSize: '14px' }}
-                            />
-                        </div>
-
-                        {/* Profesor search */}
-                        <div style={{ display: 'flex', alignItems: 'center', backgroundColor: 'white', borderRadius: '6px', padding: '6px 12px', gap: '8px', flex: 1, minWidth: '220px' }}>
-                            <Search size={18} color="#6B7280" />
-                            <input
-                                value={searchProfesor}
-                                onChange={(e) => setSearchProfesor(e.target.value)}
-                                placeholder="Buscar por profesor..."
-                                style={{ border: 'none', outline: 'none', fontSize: '14px', flex: 1 }}
-                            />
-                        </div>
-
-                        {/* View toggle */}
-                        <div style={{ display: 'flex', gap: '4px', backgroundColor: 'white', borderRadius: '6px', padding: '4px' }}>
-                            {([
-                                ['grid', LayoutGrid, 'Vista grilla'],
-                                ['list', List, 'Vista lista'],
-                                ['calendar', CalendarDays, 'Vista calendario'],
-                            ] as [ViewMode, typeof LayoutGrid, string][]).map(([mode, Icon, title]) => (
-                                <button
-                                    key={mode}
-                                    onClick={() => setViewMode(mode)}
-                                    title={title}
-                                    style={{
-                                        padding: '6px 10px', borderRadius: '4px', border: 'none', cursor: 'pointer',
-                                        backgroundColor: viewMode === mode ? '#424242' : 'transparent',
-                                        color: viewMode === mode ? 'white' : '#374151', display: 'flex', alignItems: 'center',
-                                    }}
-                                >
-                                    <Icon size={18} />
-                                </button>
-                            ))}
-                        </div>
-
-                        {/* Nuevo Horario */}
-                        <button
-                            onClick={() => setShowNewModal(true)}
-                            style={{ backgroundColor: '#424242', color: 'white', padding: '10px 20px', borderRadius: '6px', fontSize: '14px', border: 'none', cursor: 'pointer', fontWeight: '500' }}
-                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#333333'}
-                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#424242'}
-                        >
-                            Nuevo Horario
-                        </button>
                     </div>
 
-                    {error && (
-                        <div style={{ marginBottom: '16px', color: '#B91C1C', backgroundColor: '#FEE2E2', padding: '10px 16px', borderRadius: '6px' }}>
-                            {error}
-                        </div>
-                    )}
+                    <button
+                        onClick={() => {
+                            setNewForm(f => ({ ...f, idActividad: f.idActividad || String(actividades[0]?.idActividad ?? '') }));
+                            setShowNewModal(true);
+                        }}
+                        className="bg-gray-800 hover:bg-gray-700 active:scale-95 text-white px-5 py-2.5 rounded-lg text-sm font-medium shadow transition-all duration-150"
+                    >
+                        Nuevo Horario
+                    </button>
+                </div>
 
+                {error && (
+                    <div className="w-full max-w-6xl mb-4 text-red-700 bg-red-50 border border-red-100 px-4 py-2.5 rounded-lg text-sm animate-shake">
+                        {error}
+                    </div>
+                )}
+
+                <div className="w-full max-w-6xl">
                     {loading ? (
-                        <p style={{ color: '#374151' }}>Cargando turnos...</p>
+                        <p className="text-gray-600">Cargando turnos...</p>
                     ) : turnos.length === 0 ? (
-                        <p style={{ color: '#374151' }}>No se encontraron turnos.</p>
+                        <p className="text-gray-600">No se encontraron turnos.</p>
                     ) : viewMode === 'list' ? (
-                        <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '24px', width: '100%' }}>
+                        <div className="bg-white rounded-2xl shadow-card p-6 w-full animate-fadeIn">
                             {Object.entries(groupedByDia).map(([key, apps], i) => (
-                                <div key={key} style={{ marginBottom: i < Object.keys(groupedByDia).length - 1 ? '32px' : 0 }}>
-                                    <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#111827', marginBottom: '16px', marginTop: 0, textTransform: 'capitalize' }}>
+                                <div key={key} className={i < Object.keys(groupedByDia).length - 1 ? 'mb-8' : ''}>
+                                    <h3 className="text-base font-semibold text-gray-900 mb-4 capitalize">
                                         {formatDia(apps[0].dia)}
                                     </h3>
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                                        {apps.map(renderTurnoCard)}
+                                    <div className="flex flex-col gap-3">
+                                        {apps.map((t, idx) => renderTurnoCard(t, idx))}
                                     </div>
                                 </div>
                             ))}
                         </div>
                     ) : viewMode === 'grid' ? (
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '16px' }}>
-                            {turnos.map((t) => (
+                        <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))' }}>
+                            {turnos.map((t, index) => (
                                 <div
                                     key={`${t.dia}-${t.horario}-${t.idSede}`}
                                     onClick={() => openDetail(t)}
-                                    style={{ backgroundColor: 'white', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', padding: '16px', cursor: 'pointer' }}
+                                    className="bg-white rounded-xl shadow-card hover:shadow-card-hover p-4 cursor-pointer transition-all duration-300 hover:-translate-y-1 animate-fadeIn"
+                                    style={{ animationDelay: `${Math.min(index, 10) * 30}ms` }}
                                 >
-                                    <p style={{ margin: 0, fontSize: '13px', color: '#6B7280', textTransform: 'capitalize' }}>{formatDia(t.dia)}</p>
-                                    <p style={{ margin: '6px 0', fontSize: '20px', fontWeight: '700', color: '#111827' }}>{t.horario.slice(0, 5)}</p>
-                                    <p style={{ margin: 0, fontSize: '14px', color: '#374151' }}>Profe: {profesorLabel(t)}</p>
-                                    <p style={{ margin: 0, fontSize: '14px', color: '#374151' }}>Sede: {t.sede ?? '-'}</p>
+                                    <p className="text-[13px] text-gray-500 capitalize m-0">{formatDia(t.dia)}</p>
+                                    <p className="text-xl font-bold text-gray-900 my-1.5">{horarioLabel(t)}</p>
+                                    <p className="text-sm text-gray-700 m-0">Profe: {profesorLabel(t)}</p>
+                                    <p className="text-sm text-gray-700 m-0">Sede: {t.sede ?? '-'}</p>
                                 </div>
                             ))}
                         </div>
                     ) : (
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '16px' }}>
-                            {Object.entries(groupedByDia).map(([key, apps]) => (
-                                <div key={key} style={{ backgroundColor: 'white', borderRadius: '8px', padding: '16px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-                                    <p style={{ margin: '0 0 10px 0', fontWeight: '700', color: '#111827', textTransform: 'capitalize' }}>{formatDia(apps[0].dia)}</p>
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))' }}>
+                            {Object.entries(groupedByDia).map(([key, apps], gi) => (
+                                <div
+                                    key={key}
+                                    className="bg-white rounded-xl shadow-card p-4 animate-fadeIn"
+                                    style={{ animationDelay: `${Math.min(gi, 10) * 40}ms` }}
+                                >
+                                    <p className="font-bold text-gray-900 mb-2.5 capitalize">{formatDia(apps[0].dia)}</p>
+                                    <div className="flex flex-col gap-1.5">
                                         {apps.map((t) => (
                                             <button
                                                 key={`${t.dia}-${t.horario}-${t.idSede}`}
                                                 onClick={() => openDetail(t)}
-                                                style={{ textAlign: 'left', border: '1px solid #D1D5DB', borderRadius: '6px', padding: '6px 10px', background: 'none', cursor: 'pointer', fontSize: '13px' }}
+                                                className="text-left border border-gray-200 rounded-lg px-2.5 py-1.5 text-[13px] bg-transparent hover:bg-primary-50 hover:border-primary-200 transition-colors duration-150"
                                             >
-                                                <strong>{t.horario.slice(0, 5)}</strong> â€” {profesorLabel(t)} ({t.sede ?? '-'})
+                                                <strong>{horarioLabel(t)}</strong> — {profesorLabel(t)} ({t.sede ?? '-'})
                                             </button>
                                         ))}
                                     </div>
@@ -437,39 +374,45 @@ const Turnero: React.FC<TurneroProps> = ({ onLogout, onNavigate }) => {
                             ))}
                         </div>
                     )}
-                </main>
-            </div>
+                </div>
+            </AppShell>
 
             {/* Detail / Edit Modal */}
             {selectedTurno && (
-                <div onClick={closeDetail} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-                    <div onClick={(e) => e.stopPropagation()} style={{ backgroundColor: 'white', borderRadius: '12px', padding: '32px', maxWidth: '500px', width: '90%', position: 'relative' }}>
-                        <button onClick={closeDetail} style={{ position: 'absolute', top: '16px', right: '16px', background: 'none', border: 'none', cursor: 'pointer', color: '#6B7280' }}>
-                            <X size={24} />
+                <div
+                    onClick={closeDetail}
+                    className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[1000] p-4 animate-fadeIn"
+                >
+                    <div
+                        onClick={(e) => e.stopPropagation()}
+                        className="bg-white rounded-2xl p-8 max-w-lg w-full relative shadow-2xl animate-popIn"
+                    >
+                        <button onClick={closeDetail} className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 hover:rotate-90 transition-all duration-200">
+                            <X size={22} />
                         </button>
 
                         {!editMode ? (
                             <>
-                                <h2 style={{ fontSize: '20px', fontWeight: 'bold', marginTop: 0, marginBottom: '20px', textTransform: 'capitalize' }}>
+                                <h2 className="text-xl font-bold text-gray-900 mb-5 capitalize">
                                     {formatDia(selectedTurno.dia)}
                                 </h2>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '28px', fontSize: '16px', color: '#111827' }}>
-                                    <p style={{ margin: 0 }}><strong>Horario:</strong> {selectedTurno.horario.slice(0, 5)}</p>
-                                    <p style={{ margin: 0 }}><strong>Profesor:</strong> {profesorLabel(selectedTurno)}</p>
-                                    <p style={{ margin: 0 }}><strong>Sede:</strong> {selectedTurno.sede ?? '-'}</p>
-                                    <p style={{ margin: 0 }}><strong>Actividad:</strong> {selectedTurno.actividad ?? '-'}</p>
-                                    <p style={{ margin: 0 }}><strong>Cant. Reservas:</strong> {selectedTurno.cantReservas ?? '0'}</p>
+                                <div className="flex flex-col gap-2.5 mb-7 text-[15px] text-gray-900">
+                                    <p className="m-0"><strong>Horario:</strong> {horarioLabel(selectedTurno)}</p>
+                                    <p className="m-0"><strong>Profesor:</strong> {profesorLabel(selectedTurno)}</p>
+                                    <p className="m-0"><strong>Sede:</strong> {selectedTurno.sede ?? '-'}</p>
+                                    <p className="m-0"><strong>Actividad:</strong> {selectedTurno.actividad ?? '-'}</p>
+                                    <p className="m-0"><strong>Cant. Reservas:</strong> {selectedTurno.cantReservas ?? '0'}</p>
                                 </div>
-                                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+                                <div className="flex justify-end gap-3">
                                     <button
                                         onClick={() => handleDelete(selectedTurno)}
-                                        style={{ backgroundColor: '#EF4444', color: 'white', padding: '10px 24px', borderRadius: '6px', fontSize: '14px', border: 'none', cursor: 'pointer', fontWeight: '500' }}
+                                        className="bg-red-500 hover:bg-red-600 active:scale-95 text-white px-6 py-2.5 rounded-lg text-sm font-medium transition-all duration-150"
                                     >
                                         Eliminar
                                     </button>
                                     <button
                                         onClick={() => startEdit(selectedTurno)}
-                                        style={{ backgroundColor: '#424242', color: 'white', padding: '10px 24px', borderRadius: '6px', fontSize: '14px', border: 'none', cursor: 'pointer', fontWeight: '500' }}
+                                        className="bg-gray-800 hover:bg-gray-700 active:scale-95 text-white px-6 py-2.5 rounded-lg text-sm font-medium transition-all duration-150"
                                     >
                                         Modificar
                                     </button>
@@ -477,34 +420,45 @@ const Turnero: React.FC<TurneroProps> = ({ onLogout, onNavigate }) => {
                             </>
                         ) : (
                             <>
-                                <h2 style={{ fontSize: '20px', fontWeight: 'bold', marginTop: 0, marginBottom: '20px' }}>Modificar Turno</h2>
+                                <h2 className="text-xl font-bold text-gray-900 mb-5">Modificar Turno</h2>
 
-                                <div style={{ marginBottom: '16px' }}>
-                                    <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#111827', marginBottom: '6px' }}>Fecha</label>
+                                <div className="mb-4">
+                                    <label className={labelClass}>Fecha</label>
                                     <input
                                         type="date"
                                         value={editForm.dia}
                                         onChange={(e) => setEditForm({ ...editForm, dia: e.target.value })}
-                                        style={{ width: '100%', padding: '8px 12px', border: '1px solid #D1D5DB', borderRadius: '6px', fontSize: '14px', boxSizing: 'border-box' }}
+                                        className={inputClass}
                                     />
                                 </div>
 
-                                <div style={{ marginBottom: '16px' }}>
-                                    <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#111827', marginBottom: '6px' }}>Horario</label>
-                                    <input
-                                        type="time"
-                                        value={editForm.horario}
-                                        onChange={(e) => setEditForm({ ...editForm, horario: e.target.value })}
-                                        style={{ width: '100%', padding: '8px 12px', border: '1px solid #D1D5DB', borderRadius: '6px', fontSize: '14px', boxSizing: 'border-box' }}
-                                    />
+                                <div className="grid grid-cols-2 gap-3 mb-4">
+                                    <div>
+                                        <label className={labelClass}>Hora de entrada</label>
+                                        <input
+                                            type="time"
+                                            value={editForm.horario}
+                                            onChange={(e) => setEditForm({ ...editForm, horario: e.target.value })}
+                                            className={inputClass}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className={labelClass}>Hora de salida</label>
+                                        <input
+                                            type="time"
+                                            value={editForm.horaFin}
+                                            onChange={(e) => setEditForm({ ...editForm, horaFin: e.target.value })}
+                                            className={inputClass}
+                                        />
+                                    </div>
                                 </div>
 
-                                <div style={{ marginBottom: '16px' }}>
-                                    <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#111827', marginBottom: '6px' }}>Profesor</label>
+                                <div className="mb-4">
+                                    <label className={labelClass}>Profesor</label>
                                     <select
                                         value={editForm.dniProfesor}
                                         onChange={(e) => setEditForm({ ...editForm, dniProfesor: e.target.value })}
-                                        style={{ width: '100%', padding: '8px 12px', border: '1px solid #D1D5DB', borderRadius: '6px', fontSize: '14px', boxSizing: 'border-box' }}
+                                        className={inputClass}
                                     >
                                         <option value="">Sin profesor</option>
                                         {profesores.map((p) => (
@@ -513,12 +467,12 @@ const Turnero: React.FC<TurneroProps> = ({ onLogout, onNavigate }) => {
                                     </select>
                                 </div>
 
-                                <div style={{ marginBottom: '24px' }}>
-                                    <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#111827', marginBottom: '6px' }}>Sede</label>
+                                <div className="mb-6">
+                                    <label className={labelClass}>Sede</label>
                                     <select
                                         value={editForm.idSede}
                                         onChange={(e) => setEditForm({ ...editForm, idSede: e.target.value })}
-                                        style={{ width: '100%', padding: '8px 12px', border: '1px solid #D1D5DB', borderRadius: '6px', fontSize: '14px', boxSizing: 'border-box' }}
+                                        className={inputClass}
                                     >
                                         {sedes.map((s) => (
                                             <option key={s.idSede} value={s.idSede}>{s.nombreSede}</option>
@@ -526,11 +480,11 @@ const Turnero: React.FC<TurneroProps> = ({ onLogout, onNavigate }) => {
                                     </select>
                                 </div>
 
-                                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
-                                    <button onClick={() => setEditMode(false)} style={{ backgroundColor: '#E5E7EB', color: '#111827', padding: '10px 24px', borderRadius: '6px', fontSize: '14px', border: 'none', cursor: 'pointer', fontWeight: '500' }}>
+                                <div className="flex justify-end gap-3">
+                                    <button onClick={() => setEditMode(false)} className="bg-gray-200 hover:bg-gray-300 text-gray-900 px-6 py-2.5 rounded-lg text-sm font-medium transition-colors duration-150">
                                         Cancelar
                                     </button>
-                                    <button onClick={handleUpdate} style={{ backgroundColor: '#424242', color: 'white', padding: '10px 24px', borderRadius: '6px', fontSize: '14px', border: 'none', cursor: 'pointer', fontWeight: '500' }}>
+                                    <button onClick={handleUpdate} className="bg-gray-800 hover:bg-gray-700 active:scale-95 text-white px-6 py-2.5 rounded-lg text-sm font-medium transition-all duration-150">
                                         Guardar
                                     </button>
                                 </div>
@@ -542,40 +496,57 @@ const Turnero: React.FC<TurneroProps> = ({ onLogout, onNavigate }) => {
 
             {/* New Turno Modal */}
             {showNewModal && (
-                <div onClick={() => setShowNewModal(false)} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-                    <div onClick={(e) => e.stopPropagation()} style={{ backgroundColor: 'white', borderRadius: '12px', padding: '32px', maxWidth: '500px', width: '90%', position: 'relative' }}>
-                        <button onClick={() => setShowNewModal(false)} style={{ position: 'absolute', top: '16px', right: '16px', background: 'none', border: 'none', cursor: 'pointer', color: '#6B7280' }}>
-                            <X size={24} />
+                <div
+                    onClick={() => setShowNewModal(false)}
+                    className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[1000] p-4 animate-fadeIn"
+                >
+                    <div
+                        onClick={(e) => e.stopPropagation()}
+                        className="bg-white rounded-2xl p-8 max-w-lg w-full relative shadow-2xl animate-popIn"
+                    >
+                        <button onClick={() => setShowNewModal(false)} className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 hover:rotate-90 transition-all duration-200">
+                            <X size={22} />
                         </button>
 
-                        <h2 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '24px', marginTop: 0 }}>Nuevo Horario</h2>
+                        <h2 className="text-xl font-bold text-gray-900 mb-6">Nuevo Horario</h2>
 
-                        <div style={{ marginBottom: '16px' }}>
-                            <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#111827', marginBottom: '6px' }}>Fecha</label>
+                        <div className="mb-4">
+                            <label className={labelClass}>Fecha</label>
                             <input
                                 type="date"
                                 value={newForm.dia}
                                 onChange={(e) => setNewForm({ ...newForm, dia: e.target.value })}
-                                style={{ width: '100%', padding: '8px 12px', border: '1px solid #D1D5DB', borderRadius: '6px', fontSize: '14px', boxSizing: 'border-box' }}
+                                className={inputClass}
                             />
                         </div>
 
-                        <div style={{ marginBottom: '16px' }}>
-                            <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#111827', marginBottom: '6px' }}>Horario</label>
-                            <input
-                                type="time"
-                                value={newForm.horario}
-                                onChange={(e) => setNewForm({ ...newForm, horario: e.target.value })}
-                                style={{ width: '100%', padding: '8px 12px', border: '1px solid #D1D5DB', borderRadius: '6px', fontSize: '14px', boxSizing: 'border-box' }}
-                            />
+                        <div className="grid grid-cols-2 gap-3 mb-4">
+                            <div>
+                                <label className={labelClass}>Hora de entrada</label>
+                                <input
+                                    type="time"
+                                    value={newForm.horario}
+                                    onChange={(e) => setNewForm({ ...newForm, horario: e.target.value })}
+                                    className={inputClass}
+                                />
+                            </div>
+                            <div>
+                                <label className={labelClass}>Hora de salida</label>
+                                <input
+                                    type="time"
+                                    value={newForm.horaFin}
+                                    onChange={(e) => setNewForm({ ...newForm, horaFin: e.target.value })}
+                                    className={inputClass}
+                                />
+                            </div>
                         </div>
 
-                        <div style={{ marginBottom: '16px' }}>
-                            <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#111827', marginBottom: '6px' }}>Profesor</label>
+                        <div className="mb-4">
+                            <label className={labelClass}>Profesor</label>
                             <select
                                 value={newForm.dniProfesor}
                                 onChange={(e) => setNewForm({ ...newForm, dniProfesor: e.target.value })}
-                                style={{ width: '100%', padding: '8px 12px', border: '1px solid #D1D5DB', borderRadius: '6px', fontSize: '14px', boxSizing: 'border-box' }}
+                                className={inputClass}
                             >
                                 <option value="">Seleccionar profesor</option>
                                 {profesores.map((p) => (
@@ -584,12 +555,12 @@ const Turnero: React.FC<TurneroProps> = ({ onLogout, onNavigate }) => {
                             </select>
                         </div>
 
-                        <div style={{ marginBottom: '16px' }}>
-                            <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#111827', marginBottom: '6px' }}>Sede</label>
+                        <div className="mb-4">
+                            <label className={labelClass}>Sede</label>
                             <select
                                 value={newForm.idSede}
                                 onChange={(e) => setNewForm({ ...newForm, idSede: e.target.value })}
-                                style={{ width: '100%', padding: '8px 12px', border: '1px solid #D1D5DB', borderRadius: '6px', fontSize: '14px', boxSizing: 'border-box' }}
+                                className={inputClass}
                             >
                                 <option value="">Seleccionar sede</option>
                                 {sedes.map((s) => (
@@ -598,34 +569,19 @@ const Turnero: React.FC<TurneroProps> = ({ onLogout, onNavigate }) => {
                             </select>
                         </div>
 
-                        <div style={{ marginBottom: '32px' }}>
-                            <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#111827', marginBottom: '6px' }}>Actividad</label>
-                            <select
-                                value={newForm.idActividad}
-                                onChange={(e) => setNewForm({ ...newForm, idActividad: e.target.value })}
-                                style={{ width: '100%', padding: '8px 12px', border: '1px solid #D1D5DB', borderRadius: '6px', fontSize: '14px', boxSizing: 'border-box' }}
-                            >
-                                <option value="">Seleccionar actividad</option>
-                                {actividades.map((a) => (
-                                    <option key={a.idActividad} value={a.idActividad}>{a.actividad}</option>
-                                ))}
-                            </select>
-                        </div>
-
-                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
-                            <button onClick={() => setShowNewModal(false)} style={{ backgroundColor: '#E5E7EB', color: '#111827', padding: '10px 24px', borderRadius: '6px', fontSize: '14px', border: 'none', cursor: 'pointer', fontWeight: '500' }}>
+                        <div className="flex justify-end gap-3 mt-7">
+                            <button onClick={() => setShowNewModal(false)} className="bg-gray-200 hover:bg-gray-300 text-gray-900 px-6 py-2.5 rounded-lg text-sm font-medium transition-colors duration-150">
                                 Cancelar
                             </button>
-                            <button onClick={handleCreate} style={{ backgroundColor: '#424242', color: 'white', padding: '10px 24px', borderRadius: '6px', fontSize: '14px', border: 'none', cursor: 'pointer', fontWeight: '500' }}>
+                            <button onClick={handleCreate} className="bg-gray-800 hover:bg-gray-700 active:scale-95 text-white px-6 py-2.5 rounded-lg text-sm font-medium transition-all duration-150">
                                 Aceptar
                             </button>
                         </div>
                     </div>
                 </div>
             )}
-        </div>
+        </>
     );
 };
 
 export default Turnero;
-

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import LoginPage from './pages/LoginPage';
 import MenuPrincipal from './pages/MenuPrincipal';
 import Socios from './pages/Socios';
@@ -11,18 +11,31 @@ import Estadisticas from './pages/Estadisticas';
 import Ingreso from './pages/Ingreso';
 import Profesores from './pages/Profesores';
 import CambiarContrasena from './pages/CambiarContrasena';
+import LoadingScreen from './components/LoadingScreen';
+import { prefetchRoute } from './utils/prefetch';
 import { SettingsProvider } from './context/SettingsContext';
 
-function AppContent() {
-    const [isLoggedIn, setIsLoggedIn] = useState(() => sessionStorage.getItem('isLoggedIn') === 'true');
-    const [currentUser, setCurrentUser] = useState(() => sessionStorage.getItem('currentUser') ?? '');
-    const [mustChangePassword, setMustChangePassword] = useState(() => sessionStorage.getItem('mustChangePassword') === 'true');
-    const navigate = useNavigate();
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+const MIN_NAV_TRANSITION_MS = 500;
 
-    const handleLogin = (username: string, mustChange = false) => {
-        sessionStorage.setItem('isLoggedIn', 'true');
-        sessionStorage.setItem('currentUser', username);
-        sessionStorage.setItem('mustChangePassword', String(mustChange));
+// Sesión: si el usuario marcó "Recordarme" persistimos en localStorage
+// (sobrevive al cierre del navegador); si no, en sessionStorage como antes.
+const readSession = (key: string) => localStorage.getItem(key) ?? sessionStorage.getItem(key);
+const clearSession = (key: string) => { localStorage.removeItem(key); sessionStorage.removeItem(key); };
+
+function AppContent() {
+    const [isLoggedIn, setIsLoggedIn] = useState(() => readSession('isLoggedIn') === 'true');
+    const [currentUser, setCurrentUser] = useState(() => readSession('currentUser') ?? '');
+    const [mustChangePassword, setMustChangePassword] = useState(() => readSession('mustChangePassword') === 'true');
+    const [pageTransitioning, setPageTransitioning] = useState(false);
+    const navigate = useNavigate();
+    const location = useLocation();
+
+    const handleLogin = (username: string, mustChange = false, rememberMe = false) => {
+        const store = rememberMe ? localStorage : sessionStorage;
+        store.setItem('isLoggedIn', 'true');
+        store.setItem('currentUser', username);
+        store.setItem('mustChangePassword', String(mustChange));
         setIsLoggedIn(true);
         setCurrentUser(username);
         setMustChangePassword(mustChange);
@@ -34,24 +47,37 @@ function AppContent() {
     };
 
     const handlePasswordChanged = () => {
-        sessionStorage.setItem('mustChangePassword', 'false');
+        const store = localStorage.getItem('isLoggedIn') ? localStorage : sessionStorage;
+        store.setItem('mustChangePassword', 'false');
         setMustChangePassword(false);
         navigate('/menu-principal', { replace: true });
     };
 
     const handleLogout = () => {
-        sessionStorage.removeItem('isLoggedIn');
-        sessionStorage.removeItem('currentUser');
-        sessionStorage.removeItem('mustChangePassword');
+        clearSession('isLoggedIn');
+        clearSession('currentUser');
+        clearSession('mustChangePassword');
         setIsLoggedIn(false);
         setCurrentUser('');
         setMustChangePassword(false);
         navigate('/', { replace: true });
     };
 
-    const handleNavigate = (path: string) => navigate(path);
+    const handleNavigate = async (path: string) => {
+        if (path === location.pathname) return;
+        setPageTransitioning(true);
+        await Promise.all([delay(MIN_NAV_TRANSITION_MS), prefetchRoute(path)]);
+        navigate(path);
+        setPageTransitioning(false);
+    };
 
     return (
+        <>
+        {pageTransitioning && (
+            <div className="fixed inset-0 z-[2000]">
+                <LoadingScreen />
+            </div>
+        )}
         <Routes>
             <Route
                 path="/"
@@ -99,6 +125,7 @@ function AppContent() {
             />
             <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+        </>
     );
 }
 

@@ -1,7 +1,7 @@
-﻿import React, { useEffect, useState } from 'react';
-import { Users, Calendar, FileText, BarChart3, Settings, LogOut, Info, UserPlus, LogIn, GraduationCap, Home } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Info, TrendingDown, TrendingUp, UserCheck } from 'lucide-react';
 import { startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, format, isSameMonth, isToday } from 'date-fns';
-import logo from '../assets/logo.png';
+import AppShell from '../components/AppShell';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
@@ -18,18 +18,6 @@ interface TurnoResumen {
 }
 
 const MenuPrincipal: React.FC<MenuPrincipalProps> = ({ onLogout, onNavigate }) => {
-    const menuItems = [
-        { icon: Home, label: 'Menú' },
-        { icon: Users, label: 'Socios' },
-        { icon: Calendar, label: 'Turnero' },
-        { icon: LogIn, label: 'Ingreso' },
-        { icon: FileText, label: 'Planes' },
-        { icon: BarChart3, label: 'Estadísticas' },
-        { icon: GraduationCap, label: 'Profesores' },
-        { icon: UserPlus, label: 'Agregar' },
-        { icon: Settings, label: 'Configuraciones' },
-    ];
-
     const [sociosActivos, setSociosActivos] = useState<number | null>(null);
     const [visitasMes, setVisitasMes] = useState<number | null>(null);
     const [bajasMes, setBajasMes] = useState<number | null>(null);
@@ -56,10 +44,10 @@ const MenuPrincipal: React.FC<MenuPrincipalProps> = ({ onLogout, onNavigate }) =
     }, []);
 
     const serviceCards = [
-        { title: 'Socios Activos', value: sociosActivos !== null ? String(sociosActivos) : '-' },
-        { title: 'Visitas del mes', value: visitasMes !== null ? String(visitasMes) : '-' },
-        { title: 'Prox. vencimientos', value: '0' },
-        { title: 'Bajas del mes', value: bajasMes !== null ? String(bajasMes) : '-' },
+        { title: 'Socios Activos', value: sociosActivos !== null ? String(sociosActivos) : '-', icon: UserCheck, accent: 'from-primary-500 to-primary-600' },
+        { title: 'Visitas del mes', value: visitasMes !== null ? String(visitasMes) : '-', icon: TrendingUp, accent: 'from-emerald-500 to-emerald-600' },
+        { title: 'Prox. vencimientos', value: '0', icon: Info, accent: 'from-amber-500 to-amber-600' },
+        { title: 'Bajas del mes', value: bajasMes !== null ? String(bajasMes) : '-', icon: TrendingDown, accent: 'from-accent-red to-red-600' },
     ];
 
     const today = new Date();
@@ -105,345 +93,110 @@ const MenuPrincipal: React.FC<MenuPrincipalProps> = ({ onLogout, onNavigate }) =
         { name: 'Signorile Bautista', subtitle: 'Personalizado Juan Ignacio' },
     ];
 
-    return (
-        <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-            {/* Header */}
-            <header style={{
-                backgroundColor: '#1976D2',
-                height: '80px',
-                display: 'flex',
-                alignItems: 'center',
-                padding: '0 24px'
-            }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <img src={logo} alt="Good Life Center" style={{ height: '48px', width: '48px' }} />
-                    <h1 style={{
-                        color: 'white',
-                        fontSize: '24px',
-                        fontWeight: 'bold',
-                        letterSpacing: '0.05em',
-                        margin: 0
-                    }}>
-                        GOOD LIFE CENTER
-                    </h1>
-                </div>
-            </header>
+    const rightPanel = (
+        <div className="p-4">
+            <h2 className="text-sm font-semibold text-gray-800 mb-4">
+                Control de Acceso
+            </h2>
 
-            <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-                {/* Sidebar */}
-                <aside style={{
-                    width: '220px',
-                    backgroundColor: 'white',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    borderRight: '1px solid #D1D5DB'
-                }}>
-                    <nav style={{ flex: 1, padding: '8px 0' }}>
-                        {menuItems.map((item, index) => (
-                            <button
-                                key={index}
-                                onClick={() => {
-                                    if (item.label === 'Socios') {
-                                        onNavigate('/socios');
-                                    } else if (item.label === 'Turnero') {
-                                        onNavigate('/turnero');
-                                    } else if (item.label === 'Planes') {
-                                        onNavigate('/planes');
-                                    } else if (item.label === 'Estadísticas') {
-                                        onNavigate('/estadisticas');
-                                    } else if (item.label === 'Ingreso') {
-                                        onNavigate('/ingreso');
-                                    } else if (item.label === 'Agregar') {
-                                        onNavigate('/crear-cuenta');
-                                    } else if (item.label === 'Profesores') {
-                                        onNavigate('/profesores');
-                                    } else if (item.label === 'Configuraciones') {
-                                        onNavigate('/configuraciones');
-                                    }
-                                }}
-                                style={{
-                                    width: '100%',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '12px',
-                                    padding: '12px 20px',
-                                    color: '#374151',
-                                    backgroundColor: 'transparent',
-                                    border: 'none',
-                                    cursor: 'pointer',
-                                    fontSize: '16px',
-                                    textAlign: 'left'
-                                }}
-                                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#F3F4F6'}
-                                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                            >
-                                <item.icon size={20} />
-                                <span>{item.label}</span>
-                            </button>
-                        ))}
-                    </nav>
-
-                    {/* Logout Button at Bottom */}
-                    <div style={{ borderTop: '1px solid #D1D5DB' }}>
-                        <button
-                            onClick={onLogout}
-                            style={{
-                                width: '100%',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '12px',
-                                padding: '14px 20px',
-                                color: '#374151',
-                                backgroundColor: 'transparent',
-                                border: 'none',
-                                cursor: 'pointer',
-                                fontSize: '16px',
-                                textAlign: 'left'
-                            }}
-                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#F3F4F6'}
-                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                        >
-                            <LogOut size={20} />
-                            <span>Cerrar Sesión</span>
-                        </button>
-                    </div>
-                </aside>
-
-                {/* Main Content */}
-                <main style={{
-                    flex: 1,
-                    backgroundColor: '#CCCCCC',
-                    padding: '24px',
-                    overflowY: 'auto',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center'
-                }}>
-                    {/* New Member Button */}
-                    <div style={{ marginBottom: '20px', width: '100%', maxWidth: '768px' }}>
-                        <button style={{
-                            backgroundColor: '#424242',
-                            color: 'white',
-                            padding: '6px 16px',
-                            borderRadius: '4px',
-                            fontSize: '14px',
-                            border: 'none',
-                            cursor: 'pointer'
-                        }}>
-                            Nuevo Socio
-                        </button>
-                    </div>
-
-                    {/* Service Cards Grid */}
-                    <div style={{
-                        display: 'grid',
-                        gridTemplateColumns: 'repeat(2, 1fr)',
-                        gap: '20px',
-                        maxWidth: '768px',
-                        width: '100%'
-                    }}>
-                        {serviceCards.map((card, index) => (
-                            <div
-                                key={index}
-                                style={{
-                                    backgroundColor: 'white',
-                                    borderRadius: '8px',
-                                    boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-                                    padding: '20px'
-                                }}
-                            >
-                                <div style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '8px',
-                                    marginBottom: '8px'
-                                }}>
-                                    <Info size={18} color="#374151" />
-                                    <h3 style={{
-                                        color: '#111827',
-                                        fontWeight: '600',
-                                        fontSize: '14px',
-                                        margin: 0
-                                    }}>{card.title}</h3>
-                                </div>
-                                <p style={{
-                                    fontSize: '36px',
-                                    fontWeight: '300',
-                                    color: '#4B5563',
-                                    margin: 0,
-                                    marginLeft: '26px'
-                                }}>{card.value}</p>
+            <div className="flex flex-col gap-3">
+                {accessControl.map((person, index) => (
+                    <div
+                        key={index}
+                        className="bg-gray-50 rounded-xl p-3 hover:bg-primary-50 transition-colors duration-200 animate-fadeIn"
+                        style={{ animationDelay: `${index * 80}ms` }}
+                    >
+                        <div className="flex items-start gap-3">
+                            <div className="h-10 w-10 shrink-0 rounded-full bg-gradient-to-br from-emerald-400 to-primary-500 flex items-center justify-center text-white text-sm font-semibold shadow-sm">
+                                {person.name.split(' ').map(n => n[0]).slice(0, 2).join('')}
                             </div>
-                        ))}
-                    </div>
-
-                    {/* Calendario de turnos activos */}
-                    <div style={{
-                        marginTop: '20px',
-                        backgroundColor: 'white',
-                        borderRadius: '8px',
-                        boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-                        padding: '20px',
-                        maxWidth: '768px',
-                        width: '100%'
-                    }}>
-                        <h3 style={{
-                            color: '#111827',
-                            fontWeight: '600',
-                            fontSize: '14px',
-                            margin: '0 0 16px 0',
-                            textTransform: 'capitalize'
-                        }}>
-                            {currentMonthLabel}
-                        </h3>
-
-                        <div style={{
-                            display: 'grid',
-                            gridTemplateColumns: 'repeat(7, 1fr)',
-                            gap: '4px',
-                            marginBottom: '8px'
-                        }}>
-                            {weekDayLabels.map((label) => (
-                                <div key={label} style={{
-                                    textAlign: 'center',
-                                    fontSize: '12px',
-                                    color: '#6B7280',
-                                    fontWeight: '600'
-                                }}>
-                                    {label}
-                                </div>
-                            ))}
-                        </div>
-
-                        <div style={{
-                            display: 'grid',
-                            gridTemplateColumns: 'repeat(7, 1fr)',
-                            gap: '4px'
-                        }}>
-                            {calendarDays.map((day: Date) => {
-                                const dayKey = format(day, 'yyyy-MM-dd');
-                                const dayTurnos = turnosByDay[dayKey] ?? [];
-                                return (
-                                    <div
-                                        key={dayKey}
-                                        onClick={() => onNavigate('/turnero')}
-                                        style={{
-                                            textAlign: 'center',
-                                            padding: '4px 2px',
-                                            borderRadius: '6px',
-                                            fontSize: '13px',
-                                            color: isSameMonth(day, today) ? '#111827' : '#D1D5DB',
-                                            backgroundColor: isToday(day) ? '#E0E7FF' : 'transparent',
-                                            fontWeight: isToday(day) ? '700' : '400',
-                                            cursor: dayTurnos.length ? 'pointer' : 'default',
-                                            minHeight: '46px'
-                                        }}
-                                    >
-                                        {format(day, 'd')}
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1px', marginTop: '2px' }}>
-                                            {dayTurnos.slice(0, 2).map((t, i) => (
-                                                <span
-                                                    key={i}
-                                                    style={{
-                                                        fontSize: '8px',
-                                                        lineHeight: '1.2',
-                                                        color: '#1976D2',
-                                                        whiteSpace: 'nowrap',
-                                                        overflow: 'hidden',
-                                                        textOverflow: 'ellipsis'
-                                                    }}
-                                                >
-                                                    {t.horario.slice(0, 5)} {profesorShort(t)}
-                                                </span>
-                                            ))}
-                                            {dayTurnos.length > 2 && (
-                                                <span style={{ fontSize: '8px', color: '#6B7280' }}>
-                                                    +{dayTurnos.length - 2}
-                                                </span>
-                                            )}
-                                        </div>
-                                    </div>
-                                );
-                            })}
+                            <div className="flex-1 min-w-0">
+                                <p className="font-semibold text-gray-800 text-xs leading-tight truncate">
+                                    {person.name}
+                                </p>
+                                <p className="text-gray-500 text-xs mt-0.5 leading-tight truncate">
+                                    {person.subtitle}
+                                </p>
+                            </div>
                         </div>
                     </div>
-                </main>
-
-                {/* Right Panel - Control de Acceso */}
-                <aside style={{
-                    width: '256px',
-                    backgroundColor: 'white',
-                    borderLeft: '1px solid #D1D5DB',
-                    overflowY: 'auto'
-                }}>
-                    <div style={{ padding: '16px' }}>
-                        <h2 style={{
-                            fontSize: '14px',
-                            fontWeight: '600',
-                            color: '#111827',
-                            marginBottom: '16px'
-                        }}>
-                            Control de Acceso
-                        </h2>
-
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                            {accessControl.map((person, index) => (
-                                <div
-                                    key={index}
-                                    style={{
-                                        backgroundColor: '#F5F5F5',
-                                        borderRadius: '8px',
-                                        padding: '12px'
-                                    }}
-                                >
-                                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
-                                        <div style={{
-                                            width: '40px',
-                                            height: '40px',
-                                            borderRadius: '50%',
-                                            background: 'linear-gradient(135deg, #4ADE80, #3B82F6)',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            color: 'white',
-                                            fontSize: '18px',
-                                            flexShrink: 0
-                                        }}>
-                                            ðŸ‘¤
-                                        </div>
-                                        <div style={{ flex: 1, minWidth: 0 }}>
-                                            <p style={{
-                                                fontWeight: '600',
-                                                color: '#111827',
-                                                fontSize: '12px',
-                                                margin: 0,
-                                                lineHeight: '1.2',
-                                                overflow: 'hidden',
-                                                textOverflow: 'ellipsis',
-                                                whiteSpace: 'nowrap'
-                                            }}>
-                                                {person.name}
-                                            </p>
-                                            <p style={{
-                                                color: '#6B7280',
-                                                fontSize: '12px',
-                                                margin: '2px 0 0 0',
-                                                lineHeight: '1.2',
-                                                overflow: 'hidden',
-                                                textOverflow: 'ellipsis',
-                                                whiteSpace: 'nowrap'
-                                            }}>{person.subtitle}</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                </aside>
+                ))}
             </div>
         </div>
+    );
+
+    return (
+        <AppShell onLogout={onLogout} onNavigate={onNavigate} activePath="/menu-principal" rightPanel={rightPanel}>
+            {/* Service Cards Grid */}
+            <div className="grid grid-cols-2 gap-5 max-w-3xl w-full mt-1">
+                {serviceCards.map((card, index) => (
+                    <div
+                        key={index}
+                        className="bg-white rounded-xl shadow-card hover:shadow-card-hover p-5 transition-all duration-300 hover:-translate-y-1 animate-fadeIn"
+                        style={{ animationDelay: `${index * 80}ms` }}
+                    >
+                        <div className="flex items-center gap-2 mb-3">
+                            <div className={`h-8 w-8 rounded-lg bg-gradient-to-br ${card.accent} flex items-center justify-center text-white shadow-sm`}>
+                                <card.icon size={16} />
+                            </div>
+                            <h3 className="text-gray-800 font-semibold text-sm">{card.title}</h3>
+                        </div>
+                        <p className="text-4xl font-light text-gray-600 ml-1">{card.value}</p>
+                    </div>
+                ))}
+            </div>
+
+            {/* Calendario de turnos activos */}
+            <div className="mt-5 bg-white rounded-xl shadow-card p-5 max-w-3xl w-full animate-fadeIn [animation-delay:250ms]">
+                <h3 className="text-gray-800 font-semibold text-sm mb-4 capitalize">
+                    {currentMonthLabel}
+                </h3>
+
+                <div className="grid grid-cols-7 gap-1 mb-2">
+                    {weekDayLabels.map((label) => (
+                        <div key={label} className="text-center text-xs font-semibold text-gray-500">
+                            {label}
+                        </div>
+                    ))}
+                </div>
+
+                <div className="grid grid-cols-7 gap-1">
+                    {calendarDays.map((day: Date) => {
+                        const dayKey = format(day, 'yyyy-MM-dd');
+                        const dayTurnos = turnosByDay[dayKey] ?? [];
+                        const today_ = isToday(day);
+                        return (
+                            <div
+                                key={dayKey}
+                                onClick={() => onNavigate('/turnero')}
+                                className={`text-center rounded-lg px-0.5 py-1 text-[13px] min-h-[46px] transition-colors duration-150
+                                    ${isSameMonth(day, today) ? 'text-gray-800' : 'text-gray-300'}
+                                    ${today_ ? 'bg-primary-50 ring-1 ring-primary-300 font-bold' : ''}
+                                    ${dayTurnos.length ? 'cursor-pointer hover:bg-primary-50' : ''}`}
+                            >
+                                {format(day, 'd')}
+                                <div className="flex flex-col gap-px mt-0.5">
+                                    {dayTurnos.slice(0, 2).map((t, i) => (
+                                        <span
+                                            key={i}
+                                            className="text-[8px] leading-tight text-primary-600 whitespace-nowrap overflow-hidden text-ellipsis"
+                                        >
+                                            {t.horario.slice(0, 5)} {profesorShort(t)}
+                                        </span>
+                                    ))}
+                                    {dayTurnos.length > 2 && (
+                                        <span className="text-[8px] text-gray-500">
+                                            +{dayTurnos.length - 2}
+                                        </span>
+                                    )}
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            </div>
+        </AppShell>
     );
 };
 
 export default MenuPrincipal;
-

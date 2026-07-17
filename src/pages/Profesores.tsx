@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Users, Calendar, FileText, BarChart3, Settings, LogOut, UserPlus, LogIn, GraduationCap, X, Plus, Search, LayoutGrid, List, Trash2, Pencil, Check, Home } from 'lucide-react';
-import logo from '../assets/logo.png';
+import { X, Plus, Search, LayoutGrid, List, Trash2, Pencil, Check } from 'lucide-react';
+import AppShell from '../components/AppShell';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
@@ -25,22 +25,8 @@ interface Sede {
 
 const emptyForm = { dni: '', nombre: '', apellido: '', telefono: '', mail: '', idSede: '' };
 
-const menuItems = [
-    { icon: Home, label: 'Menú', path: '/menu-principal' },
-    { icon: Users, label: 'Socios', path: '/socios' },
-    { icon: Calendar, label: 'Turnero', path: '/turnero' },
-    { icon: LogIn, label: 'Ingreso', path: '/ingreso' },
-    { icon: FileText, label: 'Planes', path: '/planes' },
-    { icon: BarChart3, label: 'Estadísticas', path: '/estadisticas' },
-    { icon: GraduationCap, label: 'Profesores', path: '/profesores' },
-    { icon: UserPlus, label: 'Agregar', path: '/crear-cuenta' },
-    { icon: Settings, label: 'Configuraciones', path: '/configuraciones' },
-];
-
-const inputStyle: React.CSSProperties = {
-    width: '100%', padding: '9px 12px', border: '1px solid #D1D5DB',
-    borderRadius: '6px', fontSize: '14px', outline: 'none', boxSizing: 'border-box',
-};
+const inputClass = 'w-full px-3 py-2.5 border border-gray-200 bg-gray-50 rounded-lg text-sm outline-none focus:ring-2 focus:ring-primary focus:border-transparent focus:bg-white transition-all duration-150';
+const labelClass = 'text-xs font-medium text-gray-600 block mb-1';
 
 const Profesores: React.FC<ProfesoresProps> = ({ onLogout, onNavigate }) => {
     const [profesores, setProfesores] = useState<Profesor[]>([]);
@@ -173,103 +159,80 @@ const Profesores: React.FC<ProfesoresProps> = ({ onLogout, onNavigate }) => {
     };
 
     return (
-        <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-            <header style={{ backgroundColor: '#1976D2', height: '80px', display: 'flex', alignItems: 'center', padding: '0 24px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <img src={logo} alt="Good Life Center" style={{ height: '48px', width: '48px' }} />
-                    <h1 style={{ color: 'white', fontSize: '24px', fontWeight: 'bold', letterSpacing: '0.05em', margin: 0 }}>GOOD LIFE CENTER</h1>
-                </div>
-            </header>
-
-            <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-                {/* Sidebar */}
-                <aside style={{ width: '220px', minWidth: '220px', backgroundColor: 'white', display: 'flex', flexDirection: 'column', borderRight: '1px solid #D1D5DB' }}>
-                    <nav style={{ flex: 1, padding: '8px 0' }}>
-                        {menuItems.map((item) => (
-                            <button key={item.path} onClick={() => onNavigate(item.path)} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 20px', color: item.path === '/profesores' ? '#1976D2' : '#374151', backgroundColor: item.path === '/profesores' ? '#EFF6FF' : 'transparent', border: 'none', cursor: 'pointer', fontSize: '15px', textAlign: 'left', fontWeight: item.path === '/profesores' ? '600' : '400' }}
-                                onMouseEnter={(e) => { if (item.path !== '/profesores') e.currentTarget.style.backgroundColor = '#F3F4F6'; }}
-                                onMouseLeave={(e) => { if (item.path !== '/profesores') e.currentTarget.style.backgroundColor = 'transparent'; }}>
-                                <item.icon size={18} /><span>{item.label}</span>
-                            </button>
-                        ))}
-                    </nav>
-                    <div style={{ borderTop: '1px solid #D1D5DB' }}>
-                        <button onClick={onLogout} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 20px', color: '#374151', backgroundColor: 'transparent', border: 'none', cursor: 'pointer', fontSize: '15px' }}
-                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#F3F4F6'}
-                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
-                            <LogOut size={18} /><span>Cerrar Sesión</span>
-                        </button>
-                    </div>
-                </aside>
-
-                {/* Main */}
-                <main style={{ flex: 1, backgroundColor: '#CCCCCC', padding: '24px', overflowY: 'auto', display: 'flex', gap: '20px', alignItems: 'flex-start' }}>
-
+        <>
+            <AppShell onLogout={onLogout} onNavigate={onNavigate} activePath="/profesores">
+                <div className="w-full max-w-5xl flex gap-5 items-start">
                     {/* Panel izquierdo: lista/grilla */}
-                    <div style={{ flex: 1, minWidth: 0 }}>
+                    <div className="flex-1 min-w-0">
                         {/* Toolbar */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px', flexWrap: 'wrap' }}>
-                            <h2 style={{ fontSize: '20px', fontWeight: '700', color: '#111827', margin: 0, flex: 1 }}>Profesores</h2>
+                        <div className="flex items-center gap-2.5 mb-4 flex-wrap animate-fadeIn">
+                            <h2 className="text-xl font-bold text-gray-900 flex-1">Profesores</h2>
 
-                            {/* Búsqueda */}
-                            <div style={{ position: 'relative' }}>
-                                <Search size={15} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#9CA3AF' }} />
+                            <div className="relative">
+                                <Search size={15} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
                                 <input
                                     placeholder="Buscar nombre o DNI..."
                                     value={search}
                                     onChange={e => setSearch(e.target.value)}
-                                    style={{ paddingLeft: '32px', paddingRight: '12px', paddingTop: '8px', paddingBottom: '8px', border: '1px solid #D1D5DB', borderRadius: '6px', fontSize: '14px', outline: 'none', width: '200px' }}
+                                    className="pl-8 pr-3 py-2 border border-gray-200 bg-gray-50 rounded-lg text-sm outline-none w-[200px] focus:ring-2 focus:ring-primary focus:border-transparent focus:bg-white transition-all duration-150"
                                 />
                             </div>
 
-                            {/* Cambio de vista */}
-                            <div style={{ display: 'flex', border: '1px solid #D1D5DB', borderRadius: '6px', overflow: 'hidden' }}>
-                                <button onClick={() => setViewMode('list')} title="Vista lista"
-                                    style={{ padding: '7px 10px', border: 'none', cursor: 'pointer', backgroundColor: viewMode === 'list' ? '#1976D2' : 'white', color: viewMode === 'list' ? 'white' : '#6B7280' }}>
+                            <div className="flex bg-white rounded-lg p-1 shadow-card gap-1">
+                                <button
+                                    onClick={() => setViewMode('list')}
+                                    title="Vista lista"
+                                    className={`px-2.5 py-1.5 rounded-md transition-all duration-150 flex items-center ${viewMode === 'list' ? 'bg-primary-500 text-white shadow-sm' : 'text-gray-500 hover:bg-gray-100'}`}
+                                >
                                     <List size={16} />
                                 </button>
-                                <button onClick={() => setViewMode('grid')} title="Vista grilla"
-                                    style={{ padding: '7px 10px', border: 'none', borderLeft: '1px solid #D1D5DB', cursor: 'pointer', backgroundColor: viewMode === 'grid' ? '#1976D2' : 'white', color: viewMode === 'grid' ? 'white' : '#6B7280' }}>
+                                <button
+                                    onClick={() => setViewMode('grid')}
+                                    title="Vista grilla"
+                                    className={`px-2.5 py-1.5 rounded-md transition-all duration-150 flex items-center ${viewMode === 'grid' ? 'bg-primary-500 text-white shadow-sm' : 'text-gray-500 hover:bg-gray-100'}`}
+                                >
                                     <LayoutGrid size={16} />
                                 </button>
                             </div>
 
-                            <button onClick={() => { setShowModal(true); setFormStatus(null); setForm(emptyForm); }}
-                                style={{ display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: '#424242', color: 'white', padding: '8px 14px', borderRadius: '6px', fontSize: '14px', fontWeight: '600', border: 'none', cursor: 'pointer' }}>
+                            <button
+                                onClick={() => { setShowModal(true); setFormStatus(null); setForm(emptyForm); }}
+                                className="flex items-center gap-1.5 bg-gray-800 hover:bg-gray-700 active:scale-95 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-150 shadow"
+                            >
                                 <Plus size={15} /> Nuevo
                             </button>
                         </div>
 
-                        {loading && <p style={{ color: '#6B7280' }}>Cargando profesores...</p>}
-                        {error && <p style={{ color: '#EF4444' }}>{error}</p>}
+                        {loading && <p className="text-gray-500">Cargando profesores...</p>}
+                        {error && <p className="text-red-500">{error}</p>}
                         {!loading && !error && filtered.length === 0 && (
-                            <p style={{ color: '#6B7280' }}>{search ? 'Sin resultados.' : 'No hay profesores registrados.'}</p>
+                            <p className="text-gray-500">{search ? 'Sin resultados.' : 'No hay profesores registrados.'}</p>
                         )}
 
                         {/* Vista Lista */}
                         {!loading && !error && filtered.length > 0 && viewMode === 'list' && (
-                            <div style={{ backgroundColor: 'white', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', overflow: 'hidden' }}>
-                                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                            <div className="bg-white rounded-2xl shadow-card overflow-hidden animate-fadeIn">
+                                <table className="w-full border-collapse">
                                     <thead>
-                                        <tr style={{ backgroundColor: '#F9FAFB', borderBottom: '1px solid #E5E7EB' }}>
+                                        <tr className="bg-gray-50 border-b border-gray-200">
                                             {['DNI', 'Nombre', 'Apellido', 'Teléfono', 'Mail', 'Sede'].map(col => (
-                                                <th key={col} style={{ padding: '11px 14px', textAlign: 'left', fontSize: '13px', fontWeight: '600', color: '#374151' }}>{col}</th>
+                                                <th key={col} className="px-4 py-2.5 text-left text-[13px] font-semibold text-gray-700">{col}</th>
                                             ))}
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {filtered.map((prof, i) => (
-                                            <tr key={prof.dni}
+                                            <tr
+                                                key={prof.dni}
                                                 onClick={() => selectProfesor(prof)}
-                                                style={{ borderBottom: i < filtered.length - 1 ? '1px solid #E5E7EB' : 'none', backgroundColor: selected?.dni === prof.dni ? '#EFF6FF' : 'white', cursor: 'pointer' }}
-                                                onMouseEnter={(e) => { if (selected?.dni !== prof.dni) e.currentTarget.style.backgroundColor = '#F9FAFB'; }}
-                                                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = selected?.dni === prof.dni ? '#EFF6FF' : 'white'; }}>
-                                                <td style={{ padding: '11px 14px', fontSize: '14px', color: '#111827', fontWeight: '500' }}>{prof.dni}</td>
-                                                <td style={{ padding: '11px 14px', fontSize: '14px', color: '#111827' }}>{prof.nombre ?? '-'}</td>
-                                                <td style={{ padding: '11px 14px', fontSize: '14px', color: '#111827' }}>{prof.apellido ?? '-'}</td>
-                                                <td style={{ padding: '11px 14px', fontSize: '14px', color: '#6B7280' }}>{prof.telefono ?? '-'}</td>
-                                                <td style={{ padding: '11px 14px', fontSize: '14px', color: '#6B7280' }}>{prof.mail ?? '-'}</td>
-                                                <td style={{ padding: '11px 14px', fontSize: '14px', color: '#6B7280' }}>{sedeNombre(prof.idSede)}</td>
+                                                className={`cursor-pointer transition-colors duration-150 ${i < filtered.length - 1 ? 'border-b border-gray-100' : ''} ${selected?.dni === prof.dni ? 'bg-primary-50' : 'hover:bg-gray-50'}`}
+                                            >
+                                                <td className="px-4 py-2.5 text-sm text-gray-900 font-medium">{prof.dni}</td>
+                                                <td className="px-4 py-2.5 text-sm text-gray-900">{prof.nombre ?? '-'}</td>
+                                                <td className="px-4 py-2.5 text-sm text-gray-900">{prof.apellido ?? '-'}</td>
+                                                <td className="px-4 py-2.5 text-sm text-gray-500">{prof.telefono ?? '-'}</td>
+                                                <td className="px-4 py-2.5 text-sm text-gray-500">{prof.mail ?? '-'}</td>
+                                                <td className="px-4 py-2.5 text-sm text-gray-500">{sedeNombre(prof.idSede)}</td>
                                             </tr>
                                         ))}
                                     </tbody>
@@ -279,19 +242,20 @@ const Profesores: React.FC<ProfesoresProps> = ({ onLogout, onNavigate }) => {
 
                         {/* Vista Grilla */}
                         {!loading && !error && filtered.length > 0 && viewMode === 'grid' && (
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '14px' }}>
-                                {filtered.map(prof => (
-                                    <div key={prof.dni}
+                            <div className="grid gap-3.5" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))' }}>
+                                {filtered.map((prof, index) => (
+                                    <div
+                                        key={prof.dni}
                                         onClick={() => selectProfesor(prof)}
-                                        style={{ backgroundColor: selected?.dni === prof.dni ? '#EFF6FF' : 'white', border: selected?.dni === prof.dni ? '2px solid #1976D2' : '2px solid transparent', borderRadius: '10px', padding: '18px 14px', cursor: 'pointer', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', textAlign: 'center', transition: 'border-color 0.15s' }}
-                                        onMouseEnter={(e) => { if (selected?.dni !== prof.dni) e.currentTarget.style.backgroundColor = '#F9FAFB'; }}
-                                        onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = selected?.dni === prof.dni ? '#EFF6FF' : 'white'; }}>
-                                        <div style={{ width: '52px', height: '52px', borderRadius: '50%', backgroundColor: '#1976D2', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 10px', color: 'white', fontSize: '20px', fontWeight: '700' }}>
+                                        className={`rounded-xl px-3.5 py-4 cursor-pointer shadow-card hover:shadow-card-hover text-center transition-all duration-200 hover:-translate-y-0.5 animate-fadeIn border-2 ${selected?.dni === prof.dni ? 'bg-primary-50 border-primary-400' : 'bg-white border-transparent'}`}
+                                        style={{ animationDelay: `${Math.min(index, 10) * 40}ms` }}
+                                    >
+                                        <div className="h-[52px] w-[52px] rounded-full bg-gradient-to-br from-emerald-400 to-primary-500 flex items-center justify-center mx-auto mb-2.5 text-white text-xl font-bold shadow-sm">
                                             {(prof.nombre?.[0] ?? '?').toUpperCase()}
                                         </div>
-                                        <div style={{ fontWeight: '600', fontSize: '14px', color: '#111827' }}>{prof.nombre} {prof.apellido}</div>
-                                        <div style={{ fontSize: '12px', color: '#6B7280', marginTop: '4px' }}>DNI: {prof.dni}</div>
-                                        <div style={{ fontSize: '12px', color: '#9CA3AF', marginTop: '2px' }}>{sedeNombre(prof.idSede)}</div>
+                                        <div className="font-semibold text-sm text-gray-900">{prof.nombre} {prof.apellido}</div>
+                                        <div className="text-xs text-gray-500 mt-1">DNI: {prof.dni}</div>
+                                        <div className="text-xs text-gray-400 mt-0.5">{sedeNombre(prof.idSede)}</div>
                                     </div>
                                 ))}
                             </div>
@@ -300,24 +264,24 @@ const Profesores: React.FC<ProfesoresProps> = ({ onLogout, onNavigate }) => {
 
                     {/* Panel derecho: detalle */}
                     {selected && (
-                        <div style={{ width: '300px', minWidth: '300px', backgroundColor: 'white', borderRadius: '10px', boxShadow: '0 1px 4px rgba(0,0,0,0.12)', padding: '24px', position: 'sticky', top: 0 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '18px' }}>
-                                <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '700', color: '#111827' }}>Detalle</h3>
-                                <button onClick={() => { setSelected(null); setEditing(false); setDeleteConfirm(false); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9CA3AF' }}><X size={18} /></button>
+                        <div className="w-72 shrink-0 bg-white rounded-2xl shadow-card p-6 sticky top-24 animate-fadeIn">
+                            <div className="flex items-center justify-between mb-4">
+                                <h3 className="text-base font-bold text-gray-900">Detalle</h3>
+                                <button onClick={() => { setSelected(null); setEditing(false); setDeleteConfirm(false); }} className="text-gray-400 hover:text-gray-700 hover:rotate-90 transition-all duration-200">
+                                    <X size={18} />
+                                </button>
                             </div>
 
-                            {/* Avatar */}
-                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '20px' }}>
-                                <div style={{ width: '64px', height: '64px', borderRadius: '50%', backgroundColor: '#1976D2', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '26px', fontWeight: '700', marginBottom: '8px' }}>
+                            <div className="flex flex-col items-center mb-5">
+                                <div className="h-16 w-16 rounded-full bg-gradient-to-br from-emerald-400 to-primary-500 flex items-center justify-center text-white text-2xl font-bold mb-2 shadow-sm">
                                     {(selected.nombre?.[0] ?? '?').toUpperCase()}
                                 </div>
-                                <div style={{ fontWeight: '700', fontSize: '16px', color: '#111827' }}>{selected.nombre} {selected.apellido}</div>
-                                <div style={{ fontSize: '13px', color: '#6B7280' }}>DNI: {selected.dni}</div>
+                                <div className="font-bold text-base text-gray-900">{selected.nombre} {selected.apellido}</div>
+                                <div className="text-[13px] text-gray-500">DNI: {selected.dni}</div>
                             </div>
 
-                            {/* Campos */}
                             {editing ? (
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                <div className="flex flex-col gap-3">
                                     {[
                                         { label: 'Nombre', key: 'nombre' as const },
                                         { label: 'Apellido', key: 'apellido' as const },
@@ -325,81 +289,84 @@ const Profesores: React.FC<ProfesoresProps> = ({ onLogout, onNavigate }) => {
                                         { label: 'Mail', key: 'mail' as const },
                                     ].map(({ label, key }) => (
                                         <div key={key}>
-                                            <label style={{ fontSize: '12px', fontWeight: '500', color: '#6B7280', display: 'block', marginBottom: '3px' }}>{label}</label>
-                                            <input value={editForm[key] ?? ''} onChange={e => setEditForm(f => ({ ...f, [key]: e.target.value }))}
-                                                style={{ ...inputStyle, fontSize: '13px', padding: '7px 10px' }} />
+                                            <label className={labelClass}>{label}</label>
+                                            <input value={editForm[key] ?? ''} onChange={e => setEditForm(f => ({ ...f, [key]: e.target.value }))} className={inputClass} />
                                         </div>
                                     ))}
                                     <div>
-                                        <label style={{ fontSize: '12px', fontWeight: '500', color: '#6B7280', display: 'block', marginBottom: '3px' }}>Sede</label>
-                                        <select value={editForm.idSede ?? ''} onChange={e => setEditForm(f => ({ ...f, idSede: e.target.value || null }))}
-                                            style={{ ...inputStyle, fontSize: '13px', padding: '7px 10px', backgroundColor: 'white' }}>
+                                        <label className={labelClass}>Sede</label>
+                                        <select value={editForm.idSede ?? ''} onChange={e => setEditForm(f => ({ ...f, idSede: e.target.value || null }))} className={inputClass}>
                                             <option value="">Sin sede</option>
                                             {sedes.map(s => <option key={s.idSede} value={s.idSede}>{s.nombreSede}</option>)}
                                         </select>
                                     </div>
 
                                     {editStatus && (
-                                        <p style={{ margin: 0, fontSize: '13px', color: editStatus.ok ? '#16A34A' : '#DC2626', padding: '8px', background: editStatus.ok ? '#F0FDF4' : '#FEF2F2', borderRadius: '6px' }}>
+                                        <p className={`text-[13px] px-3 py-2 rounded-lg ${editStatus.ok ? 'text-emerald-700 bg-emerald-50' : 'text-red-700 bg-red-50'}`}>
                                             {editStatus.msg}
                                         </p>
                                     )}
 
-                                    <div style={{ display: 'flex', gap: '8px' }}>
-                                        <button onClick={handleEdit} disabled={editLoading}
-                                            style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '9px', backgroundColor: editLoading ? '#9CA3AF' : '#1976D2', color: 'white', border: 'none', borderRadius: '6px', fontSize: '14px', fontWeight: '600', cursor: editLoading ? 'not-allowed' : 'pointer' }}>
+                                    <div className="flex gap-2">
+                                        <button
+                                            onClick={handleEdit}
+                                            disabled={editLoading}
+                                            className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-white text-sm font-semibold transition-colors duration-150 ${editLoading ? 'bg-gray-400 cursor-not-allowed' : 'bg-primary-500 hover:bg-primary-600'}`}
+                                        >
                                             <Check size={15} /> {editLoading ? 'Guardando...' : 'Confirmar'}
                                         </button>
-                                        <button onClick={() => { setEditing(false); setEditStatus(null); }}
-                                            style={{ padding: '9px 14px', backgroundColor: '#F3F4F6', color: '#374151', border: 'none', borderRadius: '6px', fontSize: '14px', cursor: 'pointer' }}>
+                                        <button onClick={() => { setEditing(false); setEditStatus(null); }} className="px-3.5 py-2.5 bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-lg text-sm transition-colors duration-150">
                                             Cancelar
                                         </button>
                                     </div>
                                 </div>
                             ) : (
                                 <>
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
+                                    <div className="flex flex-col gap-2.5 mb-5">
                                         {[
                                             { label: 'Teléfono', value: selected.telefono },
                                             { label: 'Mail', value: selected.mail },
                                             { label: 'Sede', value: sedeNombre(selected.idSede) },
                                         ].map(({ label, value }) => (
-                                            <div key={label} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
-                                                <span style={{ color: '#6B7280', fontWeight: '500' }}>{label}</span>
-                                                <span style={{ color: '#111827', textAlign: 'right', maxWidth: '160px', wordBreak: 'break-word' }}>{value ?? '-'}</span>
+                                            <div key={label} className="flex justify-between text-[13px]">
+                                                <span className="text-gray-500 font-medium">{label}</span>
+                                                <span className="text-gray-900 text-right max-w-[160px] break-words">{value ?? '-'}</span>
                                             </div>
                                         ))}
                                     </div>
 
                                     {editStatus && !editing && (
-                                        <p style={{ margin: '0 0 12px', fontSize: '13px', color: editStatus.ok ? '#16A34A' : '#DC2626', padding: '8px', background: editStatus.ok ? '#F0FDF4' : '#FEF2F2', borderRadius: '6px' }}>
+                                        <p className={`text-[13px] px-3 py-2 rounded-lg mb-3 ${editStatus.ok ? 'text-emerald-700 bg-emerald-50' : 'text-red-700 bg-red-50'}`}>
                                             {editStatus.msg}
                                         </p>
                                     )}
 
-                                    <div style={{ display: 'flex', gap: '8px' }}>
-                                        <button onClick={() => { setEditing(true); setEditStatus(null); setDeleteConfirm(false); }}
-                                            style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '9px', backgroundColor: '#1976D2', color: 'white', border: 'none', borderRadius: '6px', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}>
+                                    <div className="flex gap-2">
+                                        <button
+                                            onClick={() => { setEditing(true); setEditStatus(null); setDeleteConfirm(false); }}
+                                            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-primary-500 hover:bg-primary-600 text-white rounded-lg text-sm font-semibold transition-colors duration-150"
+                                        >
                                             <Pencil size={14} /> Editar
                                         </button>
-                                        <button onClick={() => setDeleteConfirm(true)}
-                                            style={{ padding: '9px 12px', backgroundColor: '#FEF2F2', color: '#DC2626', border: '1px solid #FCA5A5', borderRadius: '6px', cursor: 'pointer' }}>
+                                        <button onClick={() => setDeleteConfirm(true)} className="px-3 py-2.5 bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 rounded-lg transition-colors duration-150">
                                             <Trash2 size={15} />
                                         </button>
                                     </div>
 
                                     {deleteConfirm && (
-                                        <div style={{ marginTop: '12px', padding: '12px', backgroundColor: '#FEF2F2', borderRadius: '8px', border: '1px solid #FCA5A5' }}>
-                                            <p style={{ margin: '0 0 10px', fontSize: '13px', color: '#DC2626', fontWeight: '500' }}>
+                                        <div className="mt-3 p-3 bg-red-50 rounded-lg border border-red-200 animate-fadeIn">
+                                            <p className="text-[13px] text-red-600 font-medium mb-2.5">
                                                 ¿Eliminar a {selected.nombre} {selected.apellido}?
                                             </p>
-                                            <div style={{ display: 'flex', gap: '8px' }}>
-                                                <button onClick={handleDelete} disabled={deleteLoading}
-                                                    style={{ flex: 1, padding: '8px', backgroundColor: '#DC2626', color: 'white', border: 'none', borderRadius: '6px', fontSize: '13px', fontWeight: '600', cursor: deleteLoading ? 'not-allowed' : 'pointer' }}>
+                                            <div className="flex gap-2">
+                                                <button
+                                                    onClick={handleDelete}
+                                                    disabled={deleteLoading}
+                                                    className={`flex-1 py-2 rounded-lg text-[13px] font-semibold text-white transition-colors duration-150 ${deleteLoading ? 'bg-red-300 cursor-not-allowed' : 'bg-red-500 hover:bg-red-600'}`}
+                                                >
                                                     {deleteLoading ? 'Eliminando...' : 'Sí, eliminar'}
                                                 </button>
-                                                <button onClick={() => setDeleteConfirm(false)}
-                                                    style={{ flex: 1, padding: '8px', backgroundColor: 'white', color: '#374151', border: '1px solid #D1D5DB', borderRadius: '6px', fontSize: '13px', cursor: 'pointer' }}>
+                                                <button onClick={() => setDeleteConfirm(false)} className="flex-1 py-2 bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 rounded-lg text-[13px] transition-colors duration-150">
                                                     Cancelar
                                                 </button>
                                             </div>
@@ -409,61 +376,67 @@ const Profesores: React.FC<ProfesoresProps> = ({ onLogout, onNavigate }) => {
                             )}
                         </div>
                     )}
-                </main>
-            </div>
+                </div>
+            </AppShell>
 
             {/* Modal nuevo profesor */}
             {showModal && (
-                <div onClick={() => setShowModal(false)} style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-                    <div onClick={e => e.stopPropagation()} style={{ backgroundColor: 'white', borderRadius: '12px', padding: '32px', maxWidth: '480px', width: '90%', maxHeight: '90vh', overflowY: 'auto', position: 'relative' }}>
-                        <button onClick={() => setShowModal(false)} style={{ position: 'absolute', top: 16, right: 16, background: 'none', border: 'none', cursor: 'pointer', color: '#6B7280' }}>
+                <div
+                    onClick={() => setShowModal(false)}
+                    className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[1000] p-4 animate-fadeIn"
+                >
+                    <div onClick={e => e.stopPropagation()} className="bg-white rounded-2xl p-8 max-w-md w-full max-h-[90vh] overflow-y-auto relative shadow-2xl animate-popIn">
+                        <button onClick={() => setShowModal(false)} className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 hover:rotate-90 transition-all duration-200">
                             <X size={22} />
                         </button>
-                        <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#111827', marginBottom: '20px' }}>Nuevo Profesor</h3>
-                        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                        <h3 className="text-lg font-bold text-gray-900 mb-5">Nuevo Profesor</h3>
+                        <form onSubmit={handleSubmit} className="flex flex-col gap-3.5">
+                            <div className="grid grid-cols-2 gap-3">
                                 <div>
-                                    <label style={{ fontSize: '13px', fontWeight: '500', color: '#374151', display: 'block', marginBottom: '4px' }}>DNI *</label>
-                                    <input required value={form.dni} onChange={e => setForm(f => ({ ...f, dni: e.target.value }))} style={inputStyle} />
+                                    <label className={labelClass}>DNI *</label>
+                                    <input required value={form.dni} onChange={e => setForm(f => ({ ...f, dni: e.target.value }))} className={inputClass} />
                                 </div>
                                 <div>
-                                    <label style={{ fontSize: '13px', fontWeight: '500', color: '#374151', display: 'block', marginBottom: '4px' }}>Teléfono</label>
-                                    <input value={form.telefono} onChange={e => setForm(f => ({ ...f, telefono: e.target.value }))} style={inputStyle} />
+                                    <label className={labelClass}>Teléfono</label>
+                                    <input value={form.telefono} onChange={e => setForm(f => ({ ...f, telefono: e.target.value }))} className={inputClass} />
                                 </div>
                                 <div>
-                                    <label style={{ fontSize: '13px', fontWeight: '500', color: '#374151', display: 'block', marginBottom: '4px' }}>Nombre *</label>
-                                    <input required value={form.nombre} onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))} style={inputStyle} />
+                                    <label className={labelClass}>Nombre *</label>
+                                    <input required value={form.nombre} onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))} className={inputClass} />
                                 </div>
                                 <div>
-                                    <label style={{ fontSize: '13px', fontWeight: '500', color: '#374151', display: 'block', marginBottom: '4px' }}>Apellido *</label>
-                                    <input required value={form.apellido} onChange={e => setForm(f => ({ ...f, apellido: e.target.value }))} style={inputStyle} />
+                                    <label className={labelClass}>Apellido *</label>
+                                    <input required value={form.apellido} onChange={e => setForm(f => ({ ...f, apellido: e.target.value }))} className={inputClass} />
                                 </div>
                             </div>
                             <div>
-                                <label style={{ fontSize: '13px', fontWeight: '500', color: '#374151', display: 'block', marginBottom: '4px' }}>Email</label>
-                                <input type="email" value={form.mail} onChange={e => setForm(f => ({ ...f, mail: e.target.value }))} style={inputStyle} />
+                                <label className={labelClass}>Email</label>
+                                <input type="email" value={form.mail} onChange={e => setForm(f => ({ ...f, mail: e.target.value }))} className={inputClass} />
                             </div>
                             <div>
-                                <label style={{ fontSize: '13px', fontWeight: '500', color: '#374151', display: 'block', marginBottom: '4px' }}>Sede</label>
-                                <select value={form.idSede} onChange={e => setForm(f => ({ ...f, idSede: e.target.value }))} style={{ ...inputStyle, backgroundColor: 'white' }}>
+                                <label className={labelClass}>Sede</label>
+                                <select value={form.idSede} onChange={e => setForm(f => ({ ...f, idSede: e.target.value }))} className={inputClass}>
                                     <option value="">Sin sede</option>
                                     {sedes.map(s => <option key={s.idSede} value={s.idSede}>{s.nombreSede}</option>)}
                                 </select>
                             </div>
                             {formStatus && (
-                                <p style={{ margin: 0, fontSize: '13px', color: formStatus.ok ? '#16A34A' : '#DC2626', padding: '10px', background: formStatus.ok ? '#F0FDF4' : '#FEF2F2', borderRadius: '6px' }}>
+                                <p className={`text-[13px] px-3 py-2.5 rounded-lg ${formStatus.ok ? 'text-emerald-700 bg-emerald-50' : 'text-red-700 bg-red-50'}`}>
                                     {formStatus.msg}
                                 </p>
                             )}
-                            <button type="submit" disabled={formLoading}
-                                style={{ padding: '11px', backgroundColor: formLoading ? '#9CA3AF' : '#7C3AED', color: 'white', border: 'none', borderRadius: '6px', fontSize: '15px', fontWeight: '600', cursor: formLoading ? 'not-allowed' : 'pointer', marginTop: '4px' }}>
+                            <button
+                                type="submit"
+                                disabled={formLoading}
+                                className={`py-2.5 rounded-lg text-white text-[15px] font-semibold mt-1 transition-all duration-150 active:scale-[0.98] ${formLoading ? 'bg-gray-400 cursor-not-allowed' : 'bg-primary-500 hover:bg-primary-600 shadow-sm'}`}
+                            >
                                 {formLoading ? 'Guardando...' : 'Guardar Profesor'}
                             </button>
                         </form>
                     </div>
                 </div>
             )}
-        </div>
+        </>
     );
 };
 

@@ -7,6 +7,15 @@
 :root {
     --app-font-size: 16px;
     --app-font-weight: 400;
+    --surface-muted: #F9FAFB;
+    --surface-card: #FFFFFF;
+    --border-muted: #E5E7EB;
+}
+
+html.dark {
+    --surface-muted: #232323;
+    --surface-card: #1E1E1E;
+    --border-muted: #3A3A3A;
 }
 
 @layer base {
@@ -26,56 +35,106 @@
     }
 }
 
-/* Dark mode */
+/* Dark mode — targets the actual Tailwind utility classes used across pages,
+   not the old inline `style` attributes from the pre-Tailwind screens. */
 html.dark body,
 html.dark #root {
     background-color: #121212 !important;
     color: #E5E7EB !important;
 }
 
-html.dark header {
-    background-color: #0D47A1 !important;
+html.dark .bg-gray-100,
+html.dark .bg-gray-50 {
+    background-color: #171717 !important;
 }
 
-html.dark aside {
+html.dark .bg-white,
+html.dark .bg-white\/80,
+html.dark .bg-white\/95 {
     background-color: #1E1E1E !important;
+}
+
+html.dark .bg-gray-200 {
+    background-color: #2A2A2A !important;
+}
+
+/* Active/selected states use light-blue tints (bg-primary-50/100) that read
+   as plain white on a dark background — swap them for a dim navy tint. */
+html.dark .bg-primary-50,
+html.dark .hover\:bg-primary-50:hover,
+html.dark .bg-primary-50\/60,
+html.dark .hover\:bg-primary-50\/60:hover {
+    background-color: rgba(0, 168, 232, 0.16) !important;
+}
+
+html.dark .bg-primary-100 {
+    background-color: rgba(0, 168, 232, 0.24) !important;
+}
+
+html.dark .text-primary-600,
+html.dark .text-primary-700 {
+    color: #4DC1FF !important;
+}
+
+html.dark .text-gray-900,
+html.dark .text-gray-800,
+html.dark .text-gray-700 {
+    color: #E5E7EB !important;
+}
+
+html.dark .text-gray-600,
+html.dark .text-gray-500 {
+    color: #9CA3AF !important;
+}
+
+html.dark .border-gray-100,
+html.dark .border-gray-200,
+html.dark .border-white\/60,
+html.dark .border-white\/40 {
     border-color: #333 !important;
 }
 
-html.dark main {
-    background-color: #2C2C2C !important;
-}
-
-html.dark div[style*="background-color: white"],
-html.dark div[style*="backgroundColor: white"],
-html.dark div[style*="background: white"] {
-    background-color: #1E1E1E !important;
-}
-
-html.dark * {
+html.dark input,
+html.dark select,
+html.dark textarea {
+    background-color: #2A2A2A !important;
+    color: #E5E7EB !important;
     border-color: #444 !important;
 }
 
-html.dark p,
-html.dark span,
-html.dark h1,
-html.dark h2,
-html.dark h3,
-html.dark button,
-html.dark input,
-html.dark label {
-    color: inherit;
+html.dark input::placeholder {
+    color: #6B7280 !important;
 }
 
-html.dark input {
-    background-color: #2A2A2A !important;
-    color: #E5E7EB !important;
-    border-color: #555 !important;
+/* Blue card glow, kept subtle even against a dark background */
+html.dark .shadow-card {
+    box-shadow: 0 2px 10px rgba(0, 168, 232, 0.09), 0 1px 2px rgba(0, 0, 0, 0.3) !important;
+}
+
+html.dark .shadow-card-hover,
+html.dark .hover\:shadow-card-hover:hover {
+    box-shadow: 0 8px 26px rgba(0, 168, 232, 0.14), 0 2px 6px rgba(0, 0, 0, 0.3) !important;
+}
+
+html.dark .shadow-float {
+    box-shadow: 0 4px 22px rgba(0, 168, 232, 0.11) !important;
 }
 
 /* High contrast */
 html.high-contrast #root {
     filter: contrast(1.5);
+}
+
+/* Respect user preference: cut all decorative animation/transition duration */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.001ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.001ms !important;
+        scroll-behavior: auto !important;
+    }
 }
 
 @layer components {

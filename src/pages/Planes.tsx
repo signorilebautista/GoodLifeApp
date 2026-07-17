@@ -1,6 +1,6 @@
-﻿import React, { useEffect, useState } from 'react';
-import { Users, Calendar, FileText, BarChart3, Settings, LogOut, Plus, UserPlus, X, Trash2, ChevronLeft, LogIn, GraduationCap, Save, PlayCircle, ChevronDown, ChevronUp, Home } from 'lucide-react';
-import logo from '../assets/logo.png';
+import React, { useEffect, useState } from 'react';
+import { Plus, X, Trash2, ChevronLeft, Save, PlayCircle, ChevronUp } from 'lucide-react';
+import AppShell from '../components/AppShell';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
@@ -50,18 +50,6 @@ interface DayPlan {
     blocks: Block[];
 }
 
-const menuItems = [
-    { icon: Home, label: 'Menú', path: '/menu-principal' },
-    { icon: Users, label: 'Socios', path: '/socios' },
-    { icon: Calendar, label: 'Turnero', path: '/turnero' },
-    { icon: LogIn, label: 'Ingreso', path: '/ingreso' },
-    { icon: FileText, label: 'Planes', path: '/planes' },
-    { icon: BarChart3, label: 'Estadísticas', path: '/estadisticas' },
-    { icon: GraduationCap, label: 'Profesores', path: '/profesores' },
-    { icon: UserPlus, label: 'Agregar', path: '/crear-cuenta' },
-    { icon: Settings, label: 'Configuraciones', path: '/configuraciones' },
-];
-
 let uid = 100;
 const nextUid = () => uid++;
 
@@ -70,10 +58,11 @@ const makeDays = (): DayPlan[] => [
     { uid: nextUid(), label: 'Día 2', blocks: [{ uid: nextUid(), name: 'Bloque 1', exercises: [] }] },
 ];
 
-const inputStyle: React.CSSProperties = {
-    width: '100%', padding: '9px 10px', border: '1px solid #9CA3AF',
-    borderRadius: '6px', fontSize: '14px', backgroundColor: 'white', boxSizing: 'border-box',
-};
+const inputClass = 'w-full px-3 py-2.5 border border-gray-200 bg-gray-50 rounded-lg text-sm outline-none focus:ring-2 focus:ring-primary focus:border-transparent focus:bg-white transition-all duration-150';
+const labelClass = 'text-xs font-semibold text-gray-600 block mb-1.5';
+
+const avatarInitials = (nombre: string, apellido: string) =>
+    `${nombre[0] ?? ''}${apellido[0] ?? ''}`.toUpperCase();
 
 const Planes: React.FC<PlanesProps> = ({ onLogout, onNavigate }) => {
     const [socios, setSocios] = useState<Socio[]>([]);
@@ -81,7 +70,6 @@ const Planes: React.FC<PlanesProps> = ({ onLogout, onNavigate }) => {
     const [selectedSocio, setSelectedSocio] = useState<Socio | null>(null);
     const [ejerciciosDB, setEjerciciosDB] = useState<EjercicioDB[]>([]);
 
-    // Plan state (persisted per socio)
     const [days, setDays] = useState<DayPlan[]>([]);
     const [selectedDayUid, setSelectedDayUid] = useState<number | null>(null);
     const [planLoading, setPlanLoading] = useState(false);
@@ -92,15 +80,12 @@ const Planes: React.FC<PlanesProps> = ({ onLogout, onNavigate }) => {
     const toggleVideo = (uid: number) =>
         setOpenVideos(prev => { const s = new Set(prev); s.has(uid) ? s.delete(uid) : s.add(uid); return s; });
 
-    // Day editing
     const [editingDayUid, setEditingDayUid] = useState<number | null>(null);
     const [editingDayLabel, setEditingDayLabel] = useState('');
 
-    // Block editing
     const [editingBlockUid, setEditingBlockUid] = useState<number | null>(null);
     const [editingBlockName, setEditingBlockName] = useState('');
 
-    // Exercise modal
     const [showExModal, setShowExModal] = useState(false);
     const [exTargetBlockUid, setExTargetBlockUid] = useState<number | null>(null);
     const [exZonaId, setExZonaId] = useState('');
@@ -211,7 +196,6 @@ const Planes: React.FC<PlanesProps> = ({ onLogout, onNavigate }) => {
         return m ? `https://www.youtube.com/embed/${m[1]}` : url;
     };
 
-    // Day operations
     const addDay = () => {
         const newDay: DayPlan = { uid: nextUid(), label: `Día ${days.length + 1}`, blocks: [{ uid: nextUid(), name: 'Bloque 1', exercises: [] }] };
         setDays(prev => [...prev, newDay]);
@@ -232,7 +216,6 @@ const Planes: React.FC<PlanesProps> = ({ onLogout, onNavigate }) => {
         setEditingDayUid(null);
     };
 
-    // Block operations
     const addBlock = () => {
         if (!selectedDay) return;
         const newBlock: Block = { uid: nextUid(), name: `Bloque ${selectedDay.blocks.length + 1}`, exercises: [] };
@@ -252,7 +235,6 @@ const Planes: React.FC<PlanesProps> = ({ onLogout, onNavigate }) => {
         setEditingBlockUid(null);
     };
 
-    // Exercise operations
     const openExModal = (blockUid: number) => {
         setExTargetBlockUid(blockUid);
         setExZonaId('');
@@ -278,249 +260,194 @@ const Planes: React.FC<PlanesProps> = ({ onLogout, onNavigate }) => {
             : d));
     };
 
-    const sidebar = (
-        <aside style={{ width: '220px', backgroundColor: 'white', display: 'flex', flexDirection: 'column', borderRight: '1px solid #D1D5DB' }}>
-            <nav style={{ flex: 1, padding: '8px 0' }}>
-                {menuItems.map(item => (
-                    <button key={item.label} onClick={() => item.path !== '/planes' && onNavigate(item.path)}
-                        style={{
-                            width: '100%', display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 20px',
-                            color: item.path === '/planes' ? '#1976D2' : '#374151',
-                            backgroundColor: item.path === '/planes' ? '#EFF6FF' : 'transparent',
-                            border: 'none', cursor: item.path === '/planes' ? 'default' : 'pointer',
-                            fontSize: '16px', textAlign: 'left', fontWeight: item.path === '/planes' ? '600' : '400',
-                        }}
-                        onMouseEnter={e => { if (item.path !== '/planes') e.currentTarget.style.backgroundColor = '#F3F4F6'; }}
-                        onMouseLeave={e => { if (item.path !== '/planes') e.currentTarget.style.backgroundColor = 'transparent'; }}>
-                        <item.icon size={20} />
-                        <span>{item.label}</span>
-                    </button>
-                ))}
-            </nav>
-            <div style={{ borderTop: '1px solid #D1D5DB' }}>
-                <button onClick={onLogout}
-                    style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 20px', color: '#374151', backgroundColor: 'transparent', border: 'none', cursor: 'pointer', fontSize: '16px', textAlign: 'left' }}
-                    onMouseEnter={e => e.currentTarget.style.backgroundColor = '#F3F4F6'}
-                    onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}>
-                    <LogOut size={20} />
-                    <span>Cerrar Sesión</span>
-                </button>
-            </div>
-        </aside>
-    );
-
     // VIEW: socios list
     if (!selectedSocio) {
         return (
-            <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-                <header style={{ backgroundColor: '#1976D2', height: '80px', display: 'flex', alignItems: 'center', padding: '0 24px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <img src={logo} alt="Good Life Center" style={{ height: '48px', width: '48px' }} />
-                        <h1 style={{ color: 'white', fontSize: '24px', fontWeight: 'bold', letterSpacing: '0.05em', margin: 0 }}>GOOD LIFE CENTER</h1>
-                    </div>
-                </header>
-                <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-                    {sidebar}
-                    <main style={{ flex: 1, backgroundColor: '#E5E7EB', padding: '28px', overflowY: 'auto' }}>
-                        <h2 style={{ fontSize: '22px', fontWeight: '700', color: '#111827', margin: '0 0 20px 0' }}>Ejercicios</h2>
-                        {loadingSocios ? (
-                            <p style={{ color: '#6B7280' }}>Cargando socios...</p>
-                        ) : socios.length === 0 ? (
-                            <p style={{ color: '#6B7280' }}>Sin socios registrados.</p>
-                        ) : (
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '16px', maxWidth: '960px' }}>
-                                {socios.map(s => (
-                                    <button key={s.dni} onClick={() => selectSocio(s)}
-                                        style={{
-                                            backgroundColor: 'white', borderRadius: '10px', padding: '18px 20px',
-                                            display: 'flex', alignItems: 'center', gap: '14px',
-                                            border: '2px solid transparent', cursor: 'pointer', textAlign: 'left', width: '100%',
-                                            boxShadow: '0 1px 4px rgba(0,0,0,0.08)', transition: 'border-color 0.15s, transform 0.15s',
-                                        }}
-                                        onMouseEnter={e => { e.currentTarget.style.borderColor = '#1976D2'; e.currentTarget.style.transform = 'scale(1.02)'; }}
-                                        onMouseLeave={e => { e.currentTarget.style.borderColor = 'transparent'; e.currentTarget.style.transform = 'scale(1)'; }}>
-                                        <div style={{ width: '44px', height: '44px', borderRadius: '50%', background: 'linear-gradient(135deg,#4ADE80,#3B82F6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', flexShrink: 0 }}>ðŸ‘¤</div>
-                                        <div style={{ minWidth: 0 }}>
-                                            <p style={{ fontSize: '15px', fontWeight: '600', color: '#111827', margin: 0 }}>{s.nombre} {s.apellido}</p>
-                                            <p style={{ fontSize: '12px', color: '#6B7280', margin: '2px 0 0 0' }}>{s.plan ?? 'Sin plan'}</p>
-                                            <div style={{ display: 'flex', gap: '8px', marginTop: '4px', flexWrap: 'wrap' }}>
-                                                {s.clasesRestantes != null && (
-                                                    <span style={{ fontSize: '11px', backgroundColor: '#EFF6FF', color: '#1976D2', borderRadius: '4px', padding: '1px 6px' }}>
-                                                        {s.clasesRestantes} clases
-                                                    </span>
-                                                )}
-                                                {s.deuda != null && Number(s.deuda) > 0 && (
-                                                    <span style={{ fontSize: '11px', backgroundColor: '#FEF2F2', color: '#DC2626', borderRadius: '4px', padding: '1px 6px' }}>
-                                                        Deuda ${Math.abs(Number(s.deuda)).toLocaleString()}
-                                                    </span>
-                                                )}
-                                            </div>
+            <AppShell onLogout={onLogout} onNavigate={onNavigate} activePath="/planes">
+                <div className="w-full max-w-5xl">
+                    <h2 className="text-xl font-bold text-gray-900 mb-5 animate-fadeIn">Ejercicios</h2>
+                    {loadingSocios ? (
+                        <p className="text-gray-500">Cargando socios...</p>
+                    ) : socios.length === 0 ? (
+                        <p className="text-gray-500">Sin socios registrados.</p>
+                    ) : (
+                        <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))' }}>
+                            {socios.map((s, index) => (
+                                <button
+                                    key={s.dni}
+                                    onClick={() => selectSocio(s)}
+                                    className="bg-white rounded-xl shadow-card hover:shadow-card-hover px-5 py-4 flex items-center gap-3.5 border-2 border-transparent hover:border-primary-300 cursor-pointer text-left w-full transition-all duration-200 hover:-translate-y-0.5 animate-fadeIn"
+                                    style={{ animationDelay: `${Math.min(index, 10) * 40}ms` }}
+                                >
+                                    <div className="h-11 w-11 shrink-0 rounded-full bg-gradient-to-br from-emerald-400 to-primary-500 flex items-center justify-center text-white text-base font-semibold shadow-sm">
+                                        {avatarInitials(s.nombre, s.apellido)}
+                                    </div>
+                                    <div className="min-w-0">
+                                        <p className="text-[15px] font-semibold text-gray-900 truncate">{s.nombre} {s.apellido}</p>
+                                        <p className="text-xs text-gray-500 mt-0.5 truncate">{s.plan ?? 'Sin plan'}</p>
+                                        <div className="flex gap-1.5 mt-1.5 flex-wrap">
+                                            {s.clasesRestantes != null && (
+                                                <span className="text-[11px] bg-primary-50 text-primary-700 rounded px-1.5 py-0.5">
+                                                    {s.clasesRestantes} clases
+                                                </span>
+                                            )}
+                                            {s.deuda != null && Number(s.deuda) > 0 && (
+                                                <span className="text-[11px] bg-red-50 text-red-600 rounded px-1.5 py-0.5">
+                                                    Deuda ${Math.abs(Number(s.deuda)).toLocaleString()}
+                                                </span>
+                                            )}
                                         </div>
-                                    </button>
-                                ))}
-                            </div>
-                        )}
-                    </main>
+                                    </div>
+                                </button>
+                            ))}
+                        </div>
+                    )}
                 </div>
-            </div>
+            </AppShell>
         );
     }
 
     // VIEW: plan editor for selected socio
     return (
-        <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-            <header style={{ backgroundColor: '#1976D2', height: '80px', display: 'flex', alignItems: 'center', padding: '0 24px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <img src={logo} alt="Good Life Center" style={{ height: '48px', width: '48px' }} />
-                    <h1 style={{ color: 'white', fontSize: '24px', fontWeight: 'bold', letterSpacing: '0.05em', margin: 0 }}>GOOD LIFE CENTER</h1>
-                </div>
-            </header>
-            <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-                {sidebar}
-                <main style={{ flex: 1, backgroundColor: '#E5E7EB', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <>
+            <AppShell onLogout={onLogout} onNavigate={onNavigate} activePath="/planes">
+                <div className="w-full max-w-5xl flex flex-col gap-5">
                     {/* Plan header */}
-                    <div style={{ backgroundColor: 'white', borderBottom: '1px solid #D1D5DB', padding: '14px 24px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '12px' }}>
-                            <button onClick={backToList}
-                                style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'none', border: 'none', cursor: 'pointer', color: '#6B7280', fontSize: '14px', padding: 0 }}>
+                    <div className="bg-white rounded-2xl shadow-card p-5 animate-fadeIn">
+                        <div className="flex items-center gap-4 mb-3 flex-wrap">
+                            <button onClick={backToList} className="flex items-center gap-1.5 bg-transparent border-none cursor-pointer text-gray-500 hover:text-primary-600 text-sm p-0 transition-colors duration-150">
                                 <ChevronLeft size={18} /> Volver
                             </button>
-                            <div style={{ flex: 1 }} />
+                            <div className="flex-1" />
                             {saveStatus && (
-                                <span style={{ fontSize: '13px', color: saveStatus.ok ? '#16A34A' : '#DC2626', padding: '4px 10px', background: saveStatus.ok ? '#F0FDF4' : '#FEF2F2', borderRadius: '6px' }}>
+                                <span className={`text-[13px] px-2.5 py-1 rounded-md ${saveStatus.ok ? 'text-emerald-700 bg-emerald-50' : 'text-red-700 bg-red-50'}`}>
                                     {saveStatus.msg}
                                 </span>
                             )}
-                            <button onClick={savePlan} disabled={saveLoading || planLoading}
-                                style={{ display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: saveLoading ? '#9CA3AF' : '#1976D2', color: 'white', padding: '8px 16px', borderRadius: '6px', border: 'none', cursor: saveLoading ? 'not-allowed' : 'pointer', fontSize: '14px', fontWeight: '600' }}>
+                            <button
+                                onClick={savePlan}
+                                disabled={saveLoading || planLoading}
+                                className={`flex items-center gap-1.5 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-150 active:scale-95 ${saveLoading ? 'bg-gray-400 cursor-not-allowed' : 'bg-primary-500 hover:bg-primary-600 shadow-sm'}`}
+                            >
                                 <Save size={15} /> {saveLoading ? 'Guardando...' : 'Guardar Plan'}
                             </button>
-                            <div style={{ width: '1px', height: '20px', backgroundColor: '#D1D5DB' }} />
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'linear-gradient(135deg,#4ADE80,#3B82F6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', flexShrink: 0 }}>ðŸ‘¤</div>
+                            <div className="w-px h-5 bg-gray-200" />
+                            <div className="flex items-center gap-3">
+                                <div className="h-10 w-10 shrink-0 rounded-full bg-gradient-to-br from-emerald-400 to-primary-500 flex items-center justify-center text-white text-sm font-semibold shadow-sm">
+                                    {avatarInitials(selectedSocio.nombre, selectedSocio.apellido)}
+                                </div>
                                 <div>
-                                    <p style={{ fontSize: '17px', fontWeight: '700', color: '#111827', margin: 0 }}>{selectedSocio.nombre} {selectedSocio.apellido}</p>
-                                    <p style={{ fontSize: '12px', color: '#6B7280', margin: 0 }}>DNI {selectedSocio.dni}</p>
+                                    <p className="text-base font-bold text-gray-900">{selectedSocio.nombre} {selectedSocio.apellido}</p>
+                                    <p className="text-xs text-gray-500">DNI {selectedSocio.dni}</p>
                                 </div>
                             </div>
                         </div>
-                        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                        <div className="flex gap-2.5 flex-wrap">
                             {[
                                 ['Membresía', selectedSocio.plan ?? 'Sin membresía'],
                                 ['Clases restantes', selectedSocio.clasesRestantes ?? '0'],
                                 ['Deuda', selectedSocio.deuda != null ? `$${Math.abs(Number(selectedSocio.deuda)).toLocaleString()}` : '$0'],
-                                ['Mail', selectedSocio.mail ?? 'â€”'],
-                                ['Teléfono', selectedSocio.telefono ?? 'â€”'],
+                                ['Mail', selectedSocio.mail ?? '—'],
+                                ['Teléfono', selectedSocio.telefono ?? '—'],
                             ].map(([label, value]) => (
-                                <div key={label} style={{ backgroundColor: '#F3F4F6', borderRadius: '6px', padding: '6px 12px' }}>
-                                    <span style={{ fontSize: '11px', color: '#6B7280', display: 'block' }}>{label}</span>
-                                    <span style={{ fontSize: '13px', fontWeight: '600', color: '#111827' }}>{value}</span>
+                                <div key={label} className="bg-gray-100 rounded-lg px-3 py-1.5">
+                                    <span className="text-[11px] text-gray-500 block">{label}</span>
+                                    <span className="text-[13px] font-semibold text-gray-900">{value}</span>
                                 </div>
                             ))}
                         </div>
                     </div>
 
-                    <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+                    <div className="flex gap-5 items-start">
                         {/* Days column */}
-                        <div style={{ width: '150px', backgroundColor: '#F9FAFB', borderRight: '1px solid #D1D5DB', padding: '16px 12px', display: 'flex', flexDirection: 'column', gap: '8px', overflowY: 'auto' }}>
+                        <div className="w-40 shrink-0 bg-white rounded-2xl shadow-card p-3 flex flex-col gap-2 animate-fadeIn">
                             {days.map(day => (
-                                <div key={day.uid} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                <div key={day.uid} className="flex items-center gap-1">
                                     {editingDayUid === day.uid ? (
                                         <input
                                             autoFocus value={editingDayLabel}
                                             onChange={e => setEditingDayLabel(e.target.value)}
                                             onBlur={commitDayLabel}
                                             onKeyDown={e => e.key === 'Enter' && commitDayLabel()}
-                                            style={{ flex: 1, padding: '7px 8px', borderRadius: '6px', border: '1px solid #1976D2', fontSize: '13px' }}
+                                            className="flex-1 px-2 py-1.5 rounded-md border border-primary text-[13px] outline-none"
                                         />
                                     ) : (
                                         <button
                                             onClick={() => setSelectedDayUid(day.uid)}
                                             onDoubleClick={() => { setEditingDayUid(day.uid); setEditingDayLabel(day.label); }}
                                             title="Doble click para renombrar"
-                                            style={{
-                                                flex: 1, padding: '9px 8px', borderRadius: '6px', border: 'none', cursor: 'pointer',
-                                                fontSize: '13px', fontWeight: '500', textAlign: 'center',
-                                                backgroundColor: selectedDayUid === day.uid ? '#1976D2' : '#E5E7EB',
-                                                color: selectedDayUid === day.uid ? 'white' : '#374151',
-                                            }}>
+                                            className={`flex-1 py-2 px-2 rounded-md text-[13px] font-medium text-center transition-colors duration-150 ${selectedDayUid === day.uid ? 'bg-primary-500 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+                                        >
                                             {day.label}
                                         </button>
                                     )}
-                                    <button onClick={() => deleteDay(day.uid)} title="Eliminar día"
-                                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9CA3AF', padding: '2px', display: 'flex', flexShrink: 0 }}>
+                                    <button onClick={() => deleteDay(day.uid)} title="Eliminar día" className="text-gray-400 hover:text-red-500 p-0.5 flex shrink-0 transition-colors duration-150">
                                         <X size={13} />
                                     </button>
                                 </div>
                             ))}
-                            <button onClick={addDay}
-                                style={{ padding: '8px', borderRadius: '6px', border: '1px dashed #9CA3AF', background: 'none', cursor: 'pointer', fontSize: '13px', color: '#6B7280', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+                            <button onClick={addDay} className="py-2 rounded-md border border-dashed border-gray-300 bg-transparent text-[13px] text-gray-500 hover:bg-gray-50 hover:border-primary-300 flex items-center justify-center gap-1 transition-colors duration-150">
                                 <Plus size={13} /> Día
                             </button>
                         </div>
 
                         {/* Blocks & exercises */}
-                        <div style={{ flex: 1, padding: '20px 24px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                        <div className="flex-1 flex flex-col gap-5 min-w-0">
                             {planLoading ? (
-                                <p style={{ color: '#6B7280' }}>Cargando plan...</p>
+                                <p className="text-gray-500">Cargando plan...</p>
                             ) : !selectedDay ? (
-                                <p style={{ color: '#6B7280' }}>Seleccioná un día.</p>
+                                <p className="text-gray-500">Seleccioná un día.</p>
                             ) : (
                                 <>
-                                    {selectedDay.blocks.map(block => (
-                                        <div key={block.uid}>
-                                            {/* Block header */}
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+                                    {selectedDay.blocks.map((block, bi) => (
+                                        <div key={block.uid} className="animate-fadeIn" style={{ animationDelay: `${bi * 60}ms` }}>
+                                            <div className="flex items-center gap-2.5 mb-2.5">
                                                 {editingBlockUid === block.uid ? (
                                                     <input
                                                         autoFocus value={editingBlockName}
                                                         onChange={e => setEditingBlockName(e.target.value)}
                                                         onBlur={commitBlockName}
                                                         onKeyDown={e => e.key === 'Enter' && commitBlockName()}
-                                                        style={{ fontSize: '16px', fontWeight: 'bold', border: '1px solid #1976D2', borderRadius: '4px', padding: '4px 8px' }}
+                                                        className="text-base font-bold border border-primary rounded px-2 py-1 outline-none"
                                                     />
                                                 ) : (
                                                     <h3
                                                         onDoubleClick={() => { setEditingBlockUid(block.uid); setEditingBlockName(block.name); }}
                                                         title="Doble click para renombrar"
-                                                        style={{ fontSize: '17px', fontWeight: '700', color: '#111827', margin: 0, cursor: 'pointer' }}>
+                                                        className="text-[17px] font-bold text-gray-900 m-0 cursor-pointer"
+                                                    >
                                                         {block.name}
                                                     </h3>
                                                 )}
-                                                <button onClick={() => openExModal(block.uid)} title="Agregar ejercicio"
-                                                    style={{ background: '#1976D2', border: 'none', color: 'white', borderRadius: '50%', width: '26px', height: '26px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                                <button onClick={() => openExModal(block.uid)} title="Agregar ejercicio" className="bg-primary-500 hover:bg-primary-600 border-none text-white rounded-full w-[26px] h-[26px] cursor-pointer flex items-center justify-center shrink-0 transition-colors duration-150">
                                                     <Plus size={15} />
                                                 </button>
-                                                <button onClick={() => deleteBlock(block.uid)} title="Eliminar bloque"
-                                                    style={{ background: 'none', border: 'none', color: '#EF4444', cursor: 'pointer', display: 'flex', alignItems: 'center', flexShrink: 0 }}>
+                                                <button onClick={() => deleteBlock(block.uid)} title="Eliminar bloque" className="text-red-500 hover:text-red-600 cursor-pointer flex items-center shrink-0 transition-colors duration-150">
                                                     <Trash2 size={16} />
                                                 </button>
                                             </div>
 
-                                            {/* Exercises */}
-                                            <div style={{ backgroundColor: '#D1D5DB', borderRadius: '10px', padding: '14px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                            <div className="bg-gray-200 rounded-xl p-3.5 flex flex-col gap-2.5">
                                                 {block.exercises.length === 0 ? (
-                                                    <p style={{ color: '#6B7280', fontSize: '14px', margin: 0, textAlign: 'center' }}>Sin ejercicios â€” usá el + para agregar</p>
+                                                    <p className="text-gray-500 text-sm m-0 text-center py-2">Sin ejercicios — usá el + para agregar</p>
                                                 ) : block.exercises.map((ex, idx) => (
-                                                    <div key={ex.uid} style={{ backgroundColor: '#4B5563', color: 'white', borderRadius: '8px', overflow: 'hidden' }}>
-                                                        <div style={{ padding: '10px 14px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                                            <span style={{ fontSize: '12px', opacity: 0.7, minWidth: '28px' }}>Ej. {idx + 1}</span>
-                                                            <span style={{ fontSize: '14px', flex: 1, fontWeight: '500' }}>{ex.name}</span>
-                                                            <span style={{ fontSize: '12px', opacity: 0.8, whiteSpace: 'nowrap' }}>{ex.series} series Ã— {ex.reps} reps</span>
+                                                    <div key={ex.uid} className="bg-gray-600 text-white rounded-lg overflow-hidden">
+                                                        <div className="px-3.5 py-2.5 flex items-center gap-3">
+                                                            <span className="text-xs opacity-70 min-w-[28px]">Ej. {idx + 1}</span>
+                                                            <span className="text-sm flex-1 font-medium">{ex.name}</span>
+                                                            <span className="text-xs opacity-80 whitespace-nowrap">{ex.series} series × {ex.reps} reps</span>
                                                             {ex.videoUrl && (
-                                                                <button onClick={() => toggleVideo(ex.uid)} title={openVideos.has(ex.uid) ? 'Ocultar video' : 'Ver video'}
-                                                                    style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', opacity: 0.8, display: 'flex', alignItems: 'center', padding: 0, flexShrink: 0 }}>
+                                                                <button onClick={() => toggleVideo(ex.uid)} title={openVideos.has(ex.uid) ? 'Ocultar video' : 'Ver video'} className="text-white opacity-80 hover:opacity-100 flex items-center p-0 shrink-0 transition-opacity duration-150">
                                                                     {openVideos.has(ex.uid) ? <ChevronUp size={17} /> : <PlayCircle size={17} />}
                                                                 </button>
                                                             )}
-                                                            <button onClick={() => deleteExercise(block.uid, ex.uid)}
-                                                                style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', opacity: 0.6, display: 'flex', padding: 0, flexShrink: 0 }}>
+                                                            <button onClick={() => deleteExercise(block.uid, ex.uid)} className="text-white opacity-60 hover:opacity-100 flex p-0 shrink-0 transition-opacity duration-150">
                                                                 <X size={15} />
                                                             </button>
                                                         </div>
                                                         {ex.videoUrl && openVideos.has(ex.uid) && (
-                                                            <div style={{ aspectRatio: '16/9', background: '#000' }}>
-                                                                <iframe src={toEmbedUrl(ex.videoUrl)} style={{ width: '100%', height: '100%', border: 'none' }} allowFullScreen title={ex.name} />
+                                                            <div className="aspect-video bg-black animate-fadeIn">
+                                                                <iframe src={toEmbedUrl(ex.videoUrl)} className="w-full h-full border-none" allowFullScreen title={ex.name} />
                                                             </div>
                                                         )}
                                                     </div>
@@ -528,87 +455,89 @@ const Planes: React.FC<PlanesProps> = ({ onLogout, onNavigate }) => {
                                             </div>
                                         </div>
                                     ))}
-                                    <button onClick={addBlock}
-                                        style={{ backgroundColor: 'white', color: '#374151', padding: '11px', borderRadius: '8px', border: '1px dashed #9CA3AF', cursor: 'pointer', fontSize: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                                    <button onClick={addBlock} className="bg-white text-gray-700 py-2.5 rounded-lg border border-dashed border-gray-300 hover:bg-gray-50 hover:border-primary-300 cursor-pointer text-sm flex items-center justify-center gap-1.5 transition-colors duration-150">
                                         <Plus size={16} /> Agregar bloque
                                     </button>
                                 </>
                             )}
                         </div>
                     </div>
-                </main>
-
-            </div>
+                </div>
+            </AppShell>
 
             {/* Exercise modal */}
             {showExModal && (
-                <div onClick={() => setShowExModal(false)} style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-                    <div onClick={e => e.stopPropagation()} style={{ backgroundColor: '#F3F4F6', borderRadius: '12px', padding: '28px', maxWidth: '520px', width: '90%', maxHeight: '90vh', overflowY: 'auto' }}>
-                        <h3 style={{ fontSize: '17px', fontWeight: '700', color: '#111827', marginBottom: '20px' }}>Agregar Ejercicio</h3>
+                <div
+                    onClick={() => setShowExModal(false)}
+                    className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[1000] p-4 animate-fadeIn"
+                >
+                    <div onClick={e => e.stopPropagation()} className="bg-white rounded-2xl p-7 max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl animate-popIn">
+                        <h3 className="text-lg font-bold text-gray-900 mb-5">Agregar Ejercicio</h3>
 
-                        <div style={{ marginBottom: '16px' }}>
-                            <label style={{ fontSize: '13px', fontWeight: '600', display: 'block', marginBottom: '6px' }}>Zona muscular</label>
-                            <select value={exZonaId} onChange={e => { setExZonaId(e.target.value); setExEjercicioId(''); }} style={inputStyle}>
+                        <div className="mb-4">
+                            <label className={labelClass}>Zona muscular</label>
+                            <select value={exZonaId} onChange={e => { setExZonaId(e.target.value); setExEjercicioId(''); }} className={inputClass}>
                                 <option value="">Seleccionar zona...</option>
                                 {zonas.map(z => (
                                     <option key={z.idZona} value={z.idZona}>{z.nombre}</option>
                                 ))}
                             </select>
                             {ejerciciosDB.length === 0 && (
-                                <p style={{ fontSize: '12px', color: '#6B7280', margin: '6px 0 0 0' }}>
-                                    No hay ejercicios. Agregá uno desde Agregar â†’ Ejercicio.
+                                <p className="text-xs text-gray-500 mt-1.5">
+                                    No hay ejercicios. Agregá uno desde Agregar → Ejercicio.
                                 </p>
                             )}
                         </div>
 
-                        <div style={{ marginBottom: '16px' }}>
-                            <label style={{ fontSize: '13px', fontWeight: '600', display: 'block', marginBottom: '6px' }}>Ejercicio</label>
-                            <select value={exEjercicioId} onChange={e => setExEjercicioId(e.target.value)} style={inputStyle} disabled={!exZonaId}>
+                        <div className="mb-4">
+                            <label className={labelClass}>Ejercicio</label>
+                            <select value={exEjercicioId} onChange={e => setExEjercicioId(e.target.value)} className={`${inputClass} disabled:opacity-60 disabled:cursor-not-allowed`} disabled={!exZonaId}>
                                 <option value="">{exZonaId ? 'Seleccionar ejercicio...' : 'Primero seleccioná una zona'}</option>
                                 {ejerciciosFiltrados.map(e => (
                                     <option key={e.idEjercicio} value={e.idEjercicio}>{e.nombre}</option>
                                 ))}
                             </select>
                             {exZonaId && ejerciciosFiltrados.length === 0 && (
-                                <p style={{ fontSize: '12px', color: '#6B7280', margin: '6px 0 0 0' }}>
+                                <p className="text-xs text-gray-500 mt-1.5">
                                     No hay ejercicios en esta zona.
                                 </p>
                             )}
                         </div>
 
                         {previewEjercicio?.videoUrl && (
-                            <div style={{ marginBottom: '16px', borderRadius: '8px', overflow: 'hidden', aspectRatio: '16/9', background: '#000' }}>
-                                <iframe src={toEmbedUrl(previewEjercicio.videoUrl)} style={{ width: '100%', height: '100%', border: 'none' }} allowFullScreen title="preview" />
+                            <div className="mb-4 rounded-lg overflow-hidden aspect-video bg-black animate-fadeIn">
+                                <iframe src={toEmbedUrl(previewEjercicio.videoUrl)} className="w-full h-full border-none" allowFullScreen title="preview" />
                             </div>
                         )}
 
-                        <div style={{ display: 'flex', gap: '16px', marginBottom: '24px' }}>
-                            <div style={{ flex: 1 }}>
-                                <label style={{ fontSize: '13px', fontWeight: '600', display: 'block', marginBottom: '6px' }}>Series</label>
-                                <input type="number" value={exSeries} onChange={e => setExSeries(e.target.value)} style={inputStyle} />
+                        <div className="flex gap-4 mb-6">
+                            <div className="flex-1">
+                                <label className={labelClass}>Series</label>
+                                <input type="number" value={exSeries} onChange={e => setExSeries(e.target.value)} className={inputClass} />
                             </div>
-                            <div style={{ flex: 1 }}>
-                                <label style={{ fontSize: '13px', fontWeight: '600', display: 'block', marginBottom: '6px' }}>Repeticiones</label>
-                                <input type="number" value={exReps} onChange={e => setExReps(e.target.value)} style={inputStyle} />
+                            <div className="flex-1">
+                                <label className={labelClass}>Repeticiones</label>
+                                <input type="number" value={exReps} onChange={e => setExReps(e.target.value)} className={inputClass} />
                             </div>
                         </div>
 
-                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-                            <button onClick={() => setShowExModal(false)}
-                                style={{ backgroundColor: 'white', color: '#111827', padding: '9px 20px', borderRadius: '6px', border: '1px solid #9CA3AF', cursor: 'pointer', fontSize: '14px' }}>
+                        <div className="flex justify-end gap-2.5">
+                            <button onClick={() => setShowExModal(false)} className="bg-white text-gray-900 px-5 py-2.5 rounded-lg border border-gray-300 hover:bg-gray-50 cursor-pointer text-sm transition-colors duration-150">
                                 Cancelar
                             </button>
-                            <button onClick={confirmAddExercise} disabled={!exEjercicioId}
-                                style={{ backgroundColor: exEjercicioId ? '#111827' : '#9CA3AF', color: 'white', padding: '9px 20px', borderRadius: '6px', border: 'none', cursor: exEjercicioId ? 'pointer' : 'not-allowed', fontSize: '14px', fontWeight: '600' }}>
+                            <button
+                                onClick={confirmAddExercise}
+                                disabled={!exEjercicioId}
+                                className={`px-5 py-2.5 rounded-lg text-white text-sm font-semibold transition-colors duration-150 ${exEjercicioId ? 'bg-gray-900 hover:bg-gray-800 cursor-pointer' : 'bg-gray-400 cursor-not-allowed'}`}
+                            >
                                 Confirmar
                             </button>
                         </div>
                     </div>
                 </div>
             )}
-        </div>
+        </>
     );
 };
 
 export default Planes;
-
