@@ -10,20 +10,26 @@ interface AppShellProps {
     rightPanel?: React.ReactNode;
 }
 
-const menuItems = [
-    { icon: Home, label: 'Menú', path: '/menu-principal' },
-    { icon: Users, label: 'Socios', path: '/socios' },
-    { icon: Calendar, label: 'Turnero', path: '/turnero' },
-    { icon: LogIn, label: 'Ingreso', path: '/ingreso' },
-    { icon: FileText, label: 'Planes', path: '/planes' },
-    { icon: BarChart3, label: 'Estadísticas', path: '/estadisticas' },
-    { icon: GraduationCap, label: 'Profesores', path: '/profesores' },
-    { icon: UserPlus, label: 'Agregar', path: '/crear-cuenta' },
-    { icon: Settings, label: 'Configuraciones', path: '/configuraciones' },
+const allMenuItems = [
+    { icon: Home, label: 'Menú', path: '/menu-principal', adminOnly: false },
+    { icon: Users, label: 'Socios', path: '/socios', adminOnly: false },
+    { icon: Calendar, label: 'Turnero', path: '/turnero', adminOnly: false },
+    { icon: LogIn, label: 'Ingreso', path: '/ingreso', adminOnly: false },
+    { icon: FileText, label: 'Planes', path: '/planes', adminOnly: false },
+    { icon: BarChart3, label: 'Estadísticas', path: '/estadisticas', adminOnly: false },
+    { icon: GraduationCap, label: 'Profesores', path: '/profesores', adminOnly: false },
+    { icon: UserPlus, label: 'Agregar', path: '/crear-cuenta', adminOnly: true },
+    { icon: Settings, label: 'Configuraciones', path: '/configuraciones', adminOnly: false },
 ];
+
+function getRole(): 'admin' | 'profesor' {
+    return ((localStorage.getItem('userRole') ?? sessionStorage.getItem('userRole')) as 'admin' | 'profesor') ?? 'profesor';
+}
 
 const AppShell: React.FC<AppShellProps> = ({ onLogout, onNavigate, activePath, children, rightPanel }) => {
     const [sidebarOpen, setSidebarOpen] = useState(true);
+    const role = getRole();
+    const menuItems = allMenuItems.filter(item => !item.adminOnly || role === 'admin');
 
     return (
         <div className="min-h-screen bg-gray-100 relative">

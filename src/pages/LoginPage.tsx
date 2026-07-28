@@ -14,7 +14,7 @@ const REMEMBERED_USER_KEY = 'rememberedUser';
 const REMEMBERED_PASS_KEY = 'rememberedPass';
 
 interface LoginPageProps {
-    onLogin: (username: string, mustChangePassword?: boolean, rememberMe?: boolean) => void;
+    onLogin: (username: string, mustChangePassword?: boolean, rememberMe?: boolean, role?: 'admin' | 'profesor') => void;
 }
 
 const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
@@ -26,7 +26,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
     const [loading, setLoading] = useState(false);
     const [transitioning, setTransitioning] = useState(false);
 
-    const completeLogin = async (username: string, mustChange?: boolean) => {
+    const completeLogin = async (username: string, mustChange?: boolean, role: 'admin' | 'profesor' = 'profesor') => {
         if (rememberMe) {
             localStorage.setItem(REMEMBERED_USER_KEY, username);
             localStorage.setItem(REMEMBERED_PASS_KEY, password);
@@ -40,7 +40,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
             tasks.push(prefetchMenuPrincipal());
         }
         await Promise.all(tasks);
-        onLogin(username, mustChange, rememberMe);
+        onLogin(username, mustChange, rememberMe, role);
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -50,7 +50,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
         // Admin hardcodeado (sin email)
         const localUser = appUsers.find(u => u.username === usuario && u.password === password);
         if (localUser) {
-            completeLogin(localUser.username, false);
+            completeLogin(localUser.username, false, localUser.role === 'admin' ? 'admin' : 'profesor');
             return;
         }
 
@@ -64,7 +64,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
             });
             if (!res.ok) throw new Error('Credenciales incorrectas');
             const data = await res.json();
-            completeLogin(data.mail, data.mustChangePassword);
+            completeLogin(data.mail, data.mustChangePassword, data.role ?? 'profesor');
         } catch {
             setError('Usuario o contraseña incorrectos.');
             setLoading(false);

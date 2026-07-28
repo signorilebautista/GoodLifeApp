@@ -7,6 +7,7 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 interface ProfesoresProps {
     onLogout: () => void;
     onNavigate: (path: string) => void;
+    role?: 'admin' | 'profesor';
 }
 
 interface Profesor {
@@ -23,12 +24,13 @@ interface Sede {
     nombreSede: string;
 }
 
-const emptyForm = { dni: '', nombre: '', apellido: '', telefono: '', mail: '', idSede: '' };
+const emptyForm = { dni: '', nombre: '', apellido: '', telefono: '', mail: '', idSede: '', rol: 'profesor' };
 
 const inputClass = 'w-full px-3 py-2.5 border border-gray-200 bg-gray-50 rounded-lg text-sm outline-none focus:ring-2 focus:ring-primary focus:border-transparent focus:bg-white transition-all duration-150';
 const labelClass = 'text-xs font-medium text-gray-600 block mb-1';
 
-const Profesores: React.FC<ProfesoresProps> = ({ onLogout, onNavigate }) => {
+const Profesores: React.FC<ProfesoresProps> = ({ onLogout, onNavigate, role = 'profesor' }) => {
+    const isAdmin = role === 'admin';
     const [profesores, setProfesores] = useState<Profesor[]>([]);
     const [sedes, setSedes] = useState<Sede[]>([]);
     const [loading, setLoading] = useState(true);
@@ -138,7 +140,7 @@ const Profesores: React.FC<ProfesoresProps> = ({ onLogout, onNavigate }) => {
         setFormLoading(true);
         setFormStatus(null);
         try {
-            const body: Record<string, string> = { dni: form.dni, nombre: form.nombre, apellido: form.apellido };
+            const body: Record<string, string> = { dni: form.dni, nombre: form.nombre, apellido: form.apellido, rol: form.rol };
             if (form.telefono) body.telefono = form.telefono;
             if (form.mail) body.mail = form.mail;
             if (form.idSede) body.idSede = form.idSede;
@@ -195,12 +197,14 @@ const Profesores: React.FC<ProfesoresProps> = ({ onLogout, onNavigate }) => {
                                 </button>
                             </div>
 
-                            <button
-                                onClick={() => { setShowModal(true); setFormStatus(null); setForm(emptyForm); }}
-                                className="flex items-center gap-1.5 bg-gray-800 hover:bg-gray-700 active:scale-95 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-150 shadow"
-                            >
-                                <Plus size={15} /> Nuevo
-                            </button>
+                            {isAdmin && (
+                                <button
+                                    onClick={() => { setShowModal(true); setFormStatus(null); setForm(emptyForm); }}
+                                    className="flex items-center gap-1.5 bg-gray-800 hover:bg-gray-700 active:scale-95 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-150 shadow"
+                                >
+                                    <Plus size={15} /> Nuevo
+                                </button>
+                            )}
                         </div>
 
                         {loading && <p className="text-gray-500">Cargando profesores...</p>}
@@ -341,17 +345,19 @@ const Profesores: React.FC<ProfesoresProps> = ({ onLogout, onNavigate }) => {
                                         </p>
                                     )}
 
-                                    <div className="flex gap-2">
-                                        <button
-                                            onClick={() => { setEditing(true); setEditStatus(null); setDeleteConfirm(false); }}
-                                            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-primary-500 hover:bg-primary-600 text-white rounded-lg text-sm font-semibold transition-colors duration-150"
-                                        >
-                                            <Pencil size={14} /> Editar
-                                        </button>
-                                        <button onClick={() => setDeleteConfirm(true)} className="px-3 py-2.5 bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 rounded-lg transition-colors duration-150">
-                                            <Trash2 size={15} />
-                                        </button>
-                                    </div>
+                                    {isAdmin && (
+                                        <div className="flex gap-2">
+                                            <button
+                                                onClick={() => { setEditing(true); setEditStatus(null); setDeleteConfirm(false); }}
+                                                className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-primary-500 hover:bg-primary-600 text-white rounded-lg text-sm font-semibold transition-colors duration-150"
+                                            >
+                                                <Pencil size={14} /> Editar
+                                            </button>
+                                            <button onClick={() => setDeleteConfirm(true)} className="px-3 py-2.5 bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 rounded-lg transition-colors duration-150">
+                                                <Trash2 size={15} />
+                                            </button>
+                                        </div>
+                                    )}
 
                                     {deleteConfirm && (
                                         <div className="mt-3 p-3 bg-red-50 rounded-lg border border-red-200 animate-fadeIn">
@@ -380,7 +386,7 @@ const Profesores: React.FC<ProfesoresProps> = ({ onLogout, onNavigate }) => {
             </AppShell>
 
             {/* Modal nuevo profesor */}
-            {showModal && (
+            {showModal && isAdmin && (
                 <div
                     onClick={() => setShowModal(false)}
                     className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[1000] p-4 animate-fadeIn"
@@ -418,6 +424,13 @@ const Profesores: React.FC<ProfesoresProps> = ({ onLogout, onNavigate }) => {
                                 <select value={form.idSede} onChange={e => setForm(f => ({ ...f, idSede: e.target.value }))} className={inputClass}>
                                     <option value="">Sin sede</option>
                                     {sedes.map(s => <option key={s.idSede} value={s.idSede}>{s.nombreSede}</option>)}
+                                </select>
+                            </div>
+                            <div>
+                                <label className={labelClass}>Rol *</label>
+                                <select required value={form.rol} onChange={e => setForm(f => ({ ...f, rol: e.target.value }))} className={inputClass}>
+                                    <option value="profesor">Profesor</option>
+                                    <option value="admin">Administrador</option>
                                 </select>
                             </div>
                             {formStatus && (

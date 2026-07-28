@@ -1,28 +1,46 @@
 import React, { useRef, useState } from 'react';
-import { LogIn, CheckCircle, XCircle } from 'lucide-react';
+import { LogIn, CheckCircle, XCircle, History } from 'lucide-react';
 import AppShell from '../components/AppShell';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+const HISTORIAL_KEY = 'goodlife_ingreso_historial';
+const MAX_HISTORIAL = 10;
 
 interface IngresoProps {
     onLogout: () => void;
     onNavigate: (path: string) => void;
 }
 
-interface IngresoResult {
+export interface IngresoHistorialItem {
     ok: boolean;
     nombre: string;
     apellido: string;
     clasesRestantes: number;
     mensaje: string;
+    timestamp: string;
+}
+
+interface IngresoResult extends Omit<IngresoHistorialItem, 'timestamp'> {
     timestamp: Date;
+}
+
+function loadHistorial(): IngresoHistorialItem[] {
+    try {
+        return JSON.parse(localStorage.getItem(HISTORIAL_KEY) ?? '[]');
+    } catch {
+        return [];
+    }
+}
+
+function saveHistorial(items: IngresoHistorialItem[]) {
+    localStorage.setItem(HISTORIAL_KEY, JSON.stringify(items.slice(0, MAX_HISTORIAL)));
 }
 
 const Ingreso: React.FC<IngresoProps> = ({ onLogout, onNavigate }) => {
     const [dni, setDni] = useState('');
     const [loading, setLoading] = useState(false);
     const [result, setResult] = useState<IngresoResult | null>(null);
-    const [ultimo, setUltimo] = useState<IngresoResult | null>(null);
+    const [historial, setHistorial] = useState<IngresoHistorialItem[]>(loadHistorial);
     const inputRef = useRef<HTMLInputElement>(null);
 
     const handleIngreso = async () => {
@@ -36,7 +54,12 @@ const Ingreso: React.FC<IngresoProps> = ({ onLogout, onNavigate }) => {
             if (!res.ok) throw new Error(data.message ?? 'Error al registrar ingreso.');
             const r: IngresoResult = { ...data, timestamp: new Date() };
             setResult(r);
-            if (r.ok) setUltimo(r);
+            if (r.ok) {
+                const item: IngresoHistorialItem = { ...r, timestamp: r.timestamp.toISOString() };
+                const updated = [item, ...loadHistorial()].slice(0, MAX_HISTORIAL);
+                saveHistorial(updated);
+                setHistorial(updated);
+            }
         } catch (err: unknown) {
             setResult({ ok: false, nombre: '', apellido: '', clasesRestantes: 0, mensaje: err instanceof Error ? err.message : 'Error desconocido.', timestamp: new Date() });
         } finally {
@@ -116,20 +139,27 @@ const Ingreso: React.FC<IngresoProps> = ({ onLogout, onNavigate }) => {
                     </div>
                 )}
 
-                {/* Último ingresado */}
-                {ultimo && result !== ultimo && (
+                {/* Historial de ingresos */}
+                {historial.length > 0 && (
                     <div className="bg-white rounded-2xl shadow-card px-6 py-5 w-full animate-fadeIn">
-                        <p className="text-xs text-gray-500 font-semibold uppercase tracking-wide mb-2">Último ingresado</p>
-                        <div className="flex items-center gap-3">
-                            <div className="h-10 w-10 shrink-0 rounded-full bg-gradient-to-br from-emerald-400 to-primary-500 flex items-center justify-center text-white text-sm font-semibold shadow-sm">
-                                {`${ultimo.nombre[0] ?? ''}${ultimo.apellido[0] ?? ''}`.toUpperCase()}
-                            </div>
-                            <div>
-                                <p className="text-[15px] font-semibold text-gray-900">{ultimo.nombre} {ultimo.apellido}</p>
-                                <p className="text-xs text-gray-500 mt-0.5">
-                                    {ultimo.clasesRestantes} clase{ultimo.clasesRestantes !== 1 ? 's' : ''} restante{ultimo.clasesRestantes !== 1 ? 's' : ''} · {formatTime(ultimo.timestamp)}
-                                </p>
-                            </div>
+                        <p className="text-xs text-gray-500 font-semibold uppercase tracking-wide mb-3 flex items-center gap-1.5">
+                            <History size={13} /> Últimos ingresos
+                        </p>
+                        <div className="flex flex-col gap-2.5">
+                            {historial.map((item, i) => (
+                                <div key={i} className="flex items-center gap-3">
+                                    <div className="h-9 w-9 shrink-0 rounded-full bg-gradient-to-br from-emerald-400 to-primary-500 flex items-center justify-center text-white text-xs font-semibold shadow-sm">
+                                        {`${item.nombre[0] ?? ''}${item.apellido[0] ?? ''}`.toUpperCase()}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-[14px] font-semibold text-gray-900 truncate">{item.nombre} {item.apellido}</p>
+                                        <p className="text-xs text-gray-500 mt-0.5">
+                                            {item.clasesRestantes} clase{item.clasesRestantes !== 1 ? 's' : ''} restante{item.clasesRestantes !== 1 ? 's' : ''} · {formatTime(new Date(item.timestamp))}
+                                        </p>
+                                    </div>
+                                    {i === 0 && <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 rounded-full px-2 py-0.5 shrink-0">Ahora</span>}
+                                </div>
+                            ))}
                         </div>
                     </div>
                 )}

@@ -1,7 +1,10 @@
-import React, { useEffect, useState } from 'react';
-import { Info, TrendingDown, TrendingUp, UserCheck } from 'lucide-react';
+import React, { useEffect, useState, useCallback } from 'react';
+import { Info, TrendingDown, TrendingUp, UserCheck, LogIn } from 'lucide-react';
 import { startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, format, isSameMonth, isToday } from 'date-fns';
 import AppShell from '../components/AppShell';
+import type { IngresoHistorialItem } from './Ingreso';
+
+const HISTORIAL_KEY = 'goodlife_ingreso_historial';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
@@ -86,42 +89,64 @@ const MenuPrincipal: React.FC<MenuPrincipalProps> = ({ onLogout, onNavigate }) =
         return t.profesorApellido ?? t.profesorNombre ?? '';
     };
 
-    const accessControl = [
-        { name: 'Signorile Bautista', subtitle: 'Personalizado Juan Ignacio' },
-        { name: 'Signorile Bautista', subtitle: 'Personalizado Juan Ignacio' },
-        { name: 'Signorile Bautista', subtitle: 'Personalizado Juan Ignacio' },
-        { name: 'Signorile Bautista', subtitle: 'Personalizado Juan Ignacio' },
-    ];
+    const loadHistorial = useCallback((): IngresoHistorialItem[] => {
+        try { return JSON.parse(localStorage.getItem(HISTORIAL_KEY) ?? '[]'); }
+        catch { return []; }
+    }, []);
+
+    const [accessControl, setAccessControl] = useState<IngresoHistorialItem[]>(loadHistorial);
+
+    useEffect(() => {
+        const onFocus = () => setAccessControl(loadHistorial());
+        window.addEventListener('focus', onFocus);
+        return () => window.removeEventListener('focus', onFocus);
+    }, [loadHistorial]);
+
+    const formatTime = (iso: string) =>
+        new Date(iso).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
 
     const rightPanel = (
         <div className="p-4">
-            <h2 className="text-sm font-semibold text-gray-800 mb-4">
-                Control de Acceso
-            </h2>
+            <div className="flex items-center justify-between mb-4">
+                <h2 className="text-sm font-semibold text-gray-800">Control de Acceso</h2>
+                <button
+                    onClick={() => onNavigate('/ingreso')}
+                    className="text-[11px] text-primary-600 font-medium hover:underline flex items-center gap-1"
+                >
+                    <LogIn size={11} /> Ingresar
+                </button>
+            </div>
 
-            <div className="flex flex-col gap-3">
-                {accessControl.map((person, index) => (
-                    <div
-                        key={index}
-                        className="bg-gray-50 rounded-xl p-3 hover:bg-primary-50 transition-colors duration-200 animate-fadeIn"
-                        style={{ animationDelay: `${index * 80}ms` }}
-                    >
-                        <div className="flex items-start gap-3">
-                            <div className="h-10 w-10 shrink-0 rounded-full bg-gradient-to-br from-emerald-400 to-primary-500 flex items-center justify-center text-white text-sm font-semibold shadow-sm">
-                                {person.name.split(' ').map(n => n[0]).slice(0, 2).join('')}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                                <p className="font-semibold text-gray-800 text-xs leading-tight truncate">
-                                    {person.name}
-                                </p>
-                                <p className="text-gray-500 text-xs mt-0.5 leading-tight truncate">
-                                    {person.subtitle}
-                                </p>
+            {accessControl.length === 0 ? (
+                <p className="text-xs text-gray-400 text-center py-6">Sin ingresos registrados hoy.</p>
+            ) : (
+                <div className="flex flex-col gap-3">
+                    {accessControl.map((person, index) => (
+                        <div
+                            key={index}
+                            className="bg-gray-50 rounded-xl p-3 hover:bg-primary-50 transition-colors duration-200 animate-fadeIn"
+                            style={{ animationDelay: `${index * 80}ms` }}
+                        >
+                            <div className="flex items-start gap-3">
+                                <div className="h-10 w-10 shrink-0 rounded-full bg-gradient-to-br from-emerald-400 to-primary-500 flex items-center justify-center text-white text-sm font-semibold shadow-sm">
+                                    {`${person.nombre[0] ?? ''}${person.apellido[0] ?? ''}`.toUpperCase()}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <p className="font-semibold text-gray-800 text-xs leading-tight truncate">
+                                        {person.nombre} {person.apellido}
+                                    </p>
+                                    <p className="text-gray-500 text-xs mt-0.5 leading-tight">
+                                        {person.clasesRestantes} clase{person.clasesRestantes !== 1 ? 's' : ''} · {formatTime(person.timestamp)}
+                                    </p>
+                                </div>
+                                {index === 0 && (
+                                    <span className="text-[9px] font-semibold text-emerald-600 bg-emerald-50 rounded-full px-1.5 py-0.5 shrink-0">Ahora</span>
+                                )}
                             </div>
                         </div>
-                    </div>
-                ))}
-            </div>
+                    ))}
+                </div>
+            )}
         </div>
     );
 

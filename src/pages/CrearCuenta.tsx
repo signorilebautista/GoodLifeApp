@@ -97,7 +97,7 @@ const CrearCuenta: React.FC<CrearCuentaProps> = ({ onLogout, onNavigate }) => {
     const [sedeStatus, setSedeStatus] = useState<{ msg: string; ok: boolean } | null>(null);
     const [sedeLoading, setSedeLoading] = useState(false);
 
-    const [profesorForm, setProfesorForm] = useState({ dni: '', nombre: '', apellido: '', telefono: '', mail: '', idSede: '' });
+    const [profesorForm, setProfesorForm] = useState({ dni: '', nombre: '', apellido: '', telefono: '', mail: '', idSede: '', rol: 'profesor' });
     const [profesorStatus, setProfesorStatus] = useState<{ msg: string; ok: boolean } | null>(null);
     const [profesorLoading, setProfesorLoading] = useState(false);
 
@@ -252,7 +252,7 @@ const CrearCuenta: React.FC<CrearCuentaProps> = ({ onLogout, onNavigate }) => {
     const handleProfesorSubmit = async (e: React.FormEvent) => {
         e.preventDefault(); setProfesorLoading(true); setProfesorStatus(null);
         try {
-            const body: Record<string, string> = { dni: profesorForm.dni, nombre: profesorForm.nombre, apellido: profesorForm.apellido };
+            const body: Record<string, string> = { dni: profesorForm.dni, nombre: profesorForm.nombre, apellido: profesorForm.apellido, rol: profesorForm.rol };
             if (profesorForm.telefono) body.telefono = profesorForm.telefono;
             if (profesorForm.mail) body.mail = profesorForm.mail;
             if (profesorForm.idSede) body.idSede = profesorForm.idSede;
@@ -264,7 +264,7 @@ const CrearCuenta: React.FC<CrearCuentaProps> = ({ onLogout, onNavigate }) => {
             if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.message ?? 'Error'); }
             const saved = await res.json();
             setProfesorStatus({ msg: `Profesor "${saved.nombre} ${saved.apellido}" creado correctamente.`, ok: true });
-            setProfesorForm({ dni: '', nombre: '', apellido: '', telefono: '', mail: '', idSede: '' });
+            setProfesorForm({ dni: '', nombre: '', apellido: '', telefono: '', mail: '', idSede: '', rol: 'profesor' });
         } catch (err: unknown) { setProfesorStatus({ msg: err instanceof Error ? err.message : 'Error', ok: false }); }
         finally { setProfesorLoading(false); }
     };
@@ -391,6 +391,13 @@ const CrearCuenta: React.FC<CrearCuentaProps> = ({ onLogout, onNavigate }) => {
                                         <select value={profesorForm.idSede} onChange={e => setProfesorForm(s => ({ ...s, idSede: e.target.value }))} className={inputClass}>
                                             <option value="">Sin sede</option>
                                             {sedes.map(s => <option key={s.idSede} value={s.idSede}>{s.nombreSede}</option>)}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className={labelClass}>Rol *</label>
+                                        <select required value={profesorForm.rol} onChange={e => setProfesorForm(s => ({ ...s, rol: e.target.value }))} className={inputClass}>
+                                            <option value="profesor">Profesor</option>
+                                            <option value="admin">Administrador</option>
                                         </select>
                                     </div>
                                     <StatusMsg status={profesorStatus} />

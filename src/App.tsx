@@ -27,18 +27,21 @@ function AppContent() {
     const [isLoggedIn, setIsLoggedIn] = useState(() => readSession('isLoggedIn') === 'true');
     const [currentUser, setCurrentUser] = useState(() => readSession('currentUser') ?? '');
     const [mustChangePassword, setMustChangePassword] = useState(() => readSession('mustChangePassword') === 'true');
+    const [currentRole, setCurrentRole] = useState<'admin' | 'profesor'>(() => (readSession('userRole') as 'admin' | 'profesor') ?? 'profesor');
     const [pageTransitioning, setPageTransitioning] = useState(false);
     const navigate = useNavigate();
     const location = useLocation();
 
-    const handleLogin = (username: string, mustChange = false, rememberMe = false) => {
+    const handleLogin = (username: string, mustChange = false, rememberMe = false, role: 'admin' | 'profesor' = 'profesor') => {
         const store = rememberMe ? localStorage : sessionStorage;
         store.setItem('isLoggedIn', 'true');
         store.setItem('currentUser', username);
         store.setItem('mustChangePassword', String(mustChange));
+        store.setItem('userRole', role);
         setIsLoggedIn(true);
         setCurrentUser(username);
         setMustChangePassword(mustChange);
+        setCurrentRole(role);
         if (mustChange) {
             navigate('/cambiar-contrasena', { replace: true });
         } else {
@@ -57,9 +60,11 @@ function AppContent() {
         clearSession('isLoggedIn');
         clearSession('currentUser');
         clearSession('mustChangePassword');
+        clearSession('userRole');
         setIsLoggedIn(false);
         setCurrentUser('');
         setMustChangePassword(false);
+        setCurrentRole('profesor');
         navigate('/', { replace: true });
     };
 
@@ -109,7 +114,7 @@ function AppContent() {
             />
             <Route
                 path="/crear-cuenta"
-                element={isLoggedIn ? <CrearCuenta onLogout={handleLogout} onNavigate={handleNavigate} /> : <Navigate to="/" replace />}
+                element={isLoggedIn && currentRole === 'admin' ? <CrearCuenta onLogout={handleLogout} onNavigate={handleNavigate} /> : <Navigate to={isLoggedIn ? '/menu-principal' : '/'} replace />}
             />
             <Route
                 path="/estadisticas"
@@ -121,7 +126,7 @@ function AppContent() {
             />
             <Route
                 path="/profesores"
-                element={isLoggedIn ? <Profesores onLogout={handleLogout} onNavigate={handleNavigate} /> : <Navigate to="/" replace />}
+                element={isLoggedIn ? <Profesores onLogout={handleLogout} onNavigate={handleNavigate} role={currentRole} /> : <Navigate to="/" replace />}
             />
             <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
