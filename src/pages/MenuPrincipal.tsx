@@ -24,12 +24,21 @@ const MenuPrincipal: React.FC<MenuPrincipalProps> = ({ onLogout, onNavigate }) =
     const [sociosActivos, setSociosActivos] = useState<number | null>(null);
     const [visitasMes, setVisitasMes] = useState<number | null>(null);
     const [bajasMes, setBajasMes] = useState<number | null>(null);
+    const [proxVencimientos, setProxVencimientos] = useState<number | null>(null);
 
     useEffect(() => {
         fetch(`${API_URL}/socios`)
             .then((res) => (res.ok ? res.json() : []))
             .then((socios: unknown[]) => setSociosActivos(socios.length))
             .catch(() => setSociosActivos(null));
+
+        fetch(`${API_URL}/socios/vencimientos`)
+            .then((res) => (res.ok ? res.json() : []))
+            .then((data: { estado: string }[]) => {
+                const count = data.filter(s => s.estado === 'proximo' || s.estado === 'vencido').length;
+                setProxVencimientos(count);
+            })
+            .catch(() => setProxVencimientos(null));
 
         const hoy = new Date();
         const desde = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-01`;
@@ -47,10 +56,10 @@ const MenuPrincipal: React.FC<MenuPrincipalProps> = ({ onLogout, onNavigate }) =
     }, []);
 
     const serviceCards = [
-        { title: 'Socios Activos', value: sociosActivos !== null ? String(sociosActivos) : '-', icon: UserCheck, accent: 'from-primary-500 to-primary-600' },
-        { title: 'Visitas del mes', value: visitasMes !== null ? String(visitasMes) : '-', icon: TrendingUp, accent: 'from-emerald-500 to-emerald-600' },
-        { title: 'Prox. vencimientos', value: '0', icon: Info, accent: 'from-amber-500 to-amber-600' },
-        { title: 'Bajas del mes', value: bajasMes !== null ? String(bajasMes) : '-', icon: TrendingDown, accent: 'from-accent-red to-red-600' },
+        { title: 'Socios Activos', value: sociosActivos !== null ? String(sociosActivos) : '-', icon: UserCheck, accent: 'from-primary-500 to-primary-600', link: '/estadisticas' },
+        { title: 'Visitas del mes', value: visitasMes !== null ? String(visitasMes) : '-', icon: TrendingUp, accent: 'from-emerald-500 to-emerald-600', link: '/estadisticas' },
+        { title: 'Prox. vencimientos', value: proxVencimientos !== null ? String(proxVencimientos) : '-', icon: Info, accent: 'from-amber-500 to-amber-600', link: '/vencimientos' },
+        { title: 'Bajas del mes', value: bajasMes !== null ? String(bajasMes) : '-', icon: TrendingDown, accent: 'from-accent-red to-red-600', link: '/estadisticas' },
     ];
 
     const today = new Date();
@@ -157,7 +166,8 @@ const MenuPrincipal: React.FC<MenuPrincipalProps> = ({ onLogout, onNavigate }) =
                 {serviceCards.map((card, index) => (
                     <div
                         key={index}
-                        className="bg-white rounded-xl shadow-card hover:shadow-card-hover p-5 transition-all duration-300 hover:-translate-y-1 animate-fadeIn"
+                        onClick={() => card.link && onNavigate(card.link)}
+                        className={`bg-white rounded-xl shadow-card hover:shadow-card-hover p-5 transition-all duration-300 hover:-translate-y-1 animate-fadeIn${card.link ? ' cursor-pointer' : ''}`}
                         style={{ animationDelay: `${index * 80}ms` }}
                     >
                         <div className="flex items-center gap-2 mb-3">

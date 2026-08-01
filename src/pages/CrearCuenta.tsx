@@ -12,7 +12,7 @@ interface CrearCuentaProps {
     onNavigate: (path: string) => void;
 }
 
-interface Membresia { idMembresia: number; nombreMembresia: string; }
+interface Membresia { idMembresia: number; nombreMembresia: string; cantidadClases: number | null; precio: number | null; }
 interface ZonaMuscular { idZona: number; nombre: string; }
 interface Sede { idSede: number; nombreSede: string; }
 interface Profesor { dni: string; nombre: string; apellido: string; }
@@ -51,7 +51,7 @@ const editFields: Record<EntityType, { key: string; label: string; type?: string
     sede:     [{ key: 'nombreSede', label: 'Nombre' }, { key: 'direccion', label: 'Dirección' }],
     profesor: [{ key: 'nombre', label: 'Nombre' }, { key: 'apellido', label: 'Apellido' }, { key: 'telefono', label: 'Teléfono' }],
     ejercicio:[{ key: 'nombre', label: 'Nombre' }, { key: 'videoUrl', label: 'Video URL' }],
-    plan:     [{ key: 'nombreMembresia', label: 'Nombre de la membresía' }],
+    plan:     [{ key: 'nombreMembresia', label: 'Nombre de la membresía' }, { key: 'cantidadClases', label: 'Clases incluidas', type: 'number' }, { key: 'precio', label: 'Precio ($)', type: 'number' }],
     turno:    [{ key: 'horario', label: 'Horario' }, { key: 'dia', label: 'Día' }],
 };
 
@@ -101,7 +101,7 @@ const CrearCuenta: React.FC<CrearCuentaProps> = ({ onLogout, onNavigate }) => {
     const [profesorStatus, setProfesorStatus] = useState<{ msg: string; ok: boolean } | null>(null);
     const [profesorLoading, setProfesorLoading] = useState(false);
 
-    const [planForm, setPlanForm] = useState({ nombre: '', descripcion: '' });
+    const [planForm, setPlanForm] = useState({ nombre: '', cantidadClases: '', precio: '', descripcion: '' });
     const [planStatus, setPlanStatus] = useState<{ msg: string; ok: boolean } | null>(null);
     const [planLoading, setPlanLoading] = useState(false);
 
@@ -223,11 +223,14 @@ const CrearCuenta: React.FC<CrearCuentaProps> = ({ onLogout, onNavigate }) => {
     const handleMembresiaSubmit = async (e: React.FormEvent) => {
         e.preventDefault(); setPlanLoading(true); setPlanStatus(null);
         try {
-            const res = await fetch(`${API_URL}/socios/membresias`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nombreMembresia: planForm.nombre }) });
+            const body: Record<string, unknown> = { nombreMembresia: planForm.nombre };
+            if (planForm.cantidadClases) body.cantidadClases = Number(planForm.cantidadClases);
+            if (planForm.precio) body.precio = Number(planForm.precio);
+            const res = await fetch(`${API_URL}/socios/membresias`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
             if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.message ?? 'Error'); }
             const saved = await res.json();
             setPlanStatus({ msg: `Membresía "${saved.nombreMembresia}" creada correctamente.`, ok: true });
-            setPlanForm({ nombre: '', descripcion: '' });
+            setPlanForm({ nombre: '', cantidadClases: '', precio: '', descripcion: '' });
         } catch (err: unknown) { setPlanStatus({ msg: err instanceof Error ? err.message : 'Error', ok: false }); }
         finally { setPlanLoading(false); }
     };
@@ -241,7 +244,7 @@ const CrearCuenta: React.FC<CrearCuentaProps> = ({ onLogout, onNavigate }) => {
         e.preventDefault(); setSocioLoading(true); setSocioStatus(null);
         try {
             const body: Record<string, unknown> = { dni: socioForm.dni, nombre: socioForm.nombre, apellido: socioForm.apellido, mail: socioForm.mail || undefined, telefono: socioForm.telefono || undefined, direccion: socioForm.direccion || undefined, idMembresia: socioForm.idMembresia ? Number(socioForm.idMembresia) : undefined, clasesRestantes: socioForm.clasesRestantes || undefined, deuda: socioForm.deuda || undefined, idProfesor: socioForm.idProfesor || undefined };
-            const res = await fetch(`${API_URL}/socios/invite`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+            const res = await fetch(`${API_URL}/socios`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
             if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.message ?? 'Error.'); }
             setSocioStatus({ msg: 'Socio creado correctamente.', ok: true });
             setSocioForm(emptySocioForm);
@@ -353,7 +356,7 @@ const CrearCuenta: React.FC<CrearCuentaProps> = ({ onLogout, onNavigate }) => {
                                     <div><label className={labelClass}>Email</label><input name="mail" type="email" value={socioForm.mail} onChange={e => setSocioForm(f => ({...f,mail:e.target.value}))} className={inputClass} /></div>
                                     <div><label className={labelClass}>Dirección</label><input name="direccion" value={socioForm.direccion} onChange={e => setSocioForm(f => ({...f,direccion:e.target.value}))} className={inputClass} /></div>
                                     <div className="grid grid-cols-3 gap-3">
-                                        <div><label className={labelClass}>Membresía</label><select name="idMembresia" value={socioForm.idMembresia} onChange={e => setSocioForm(f => ({...f,idMembresia:e.target.value}))} className={inputClass}><option value="">Sin membresía</option>{membresias.map(m => <option key={m.idMembresia} value={m.idMembresia}>{m.nombreMembresia}</option>)}</select></div>
+                                        <div><label className={labelClass}>Membresía</label><select name="idMembresia" value={socioForm.idMembresia} onChange={e => { const m = membresias.find(m => String(m.idMembresia) === e.target.value); setSocioForm(f => ({...f, idMembresia: e.target.value, clasesRestantes: m?.cantidadClases != null ? String(m.cantidadClases) : f.clasesRestantes, deuda: m?.precio != null ? String(-m.precio) : f.deuda})); }} className={inputClass}><option value="">Sin membresía</option>{membresias.map(m => <option key={m.idMembresia} value={m.idMembresia}>{m.nombreMembresia}</option>)}</select></div>
                                         <div><label className={labelClass}>Clases</label><input name="clasesRestantes" value={socioForm.clasesRestantes} onChange={e => setSocioForm(f => ({...f,clasesRestantes:e.target.value}))} className={inputClass} placeholder="0" /></div>
                                         <div><label className={labelClass}>Deuda</label><input name="deuda" value={socioForm.deuda} onChange={e => setSocioForm(f => ({...f,deuda:e.target.value}))} className={inputClass} placeholder="0" /></div>
                                     </div>
@@ -447,6 +450,8 @@ const CrearCuenta: React.FC<CrearCuentaProps> = ({ onLogout, onNavigate }) => {
                                 <h3 className="text-lg font-bold mb-5">Agregar Membresía</h3>
                                 <form onSubmit={handleMembresiaSubmit} className="flex flex-col gap-3">
                                     <div><label className={labelClass}>Nombre de la membresía *</label><input required value={planForm.nombre} onChange={e => setPlanForm(s => ({...s,nombre:e.target.value}))} className={inputClass} /></div>
+                                    <div><label className={labelClass}>Clases incluidas</label><input type="number" min="0" value={planForm.cantidadClases} onChange={e => setPlanForm(s => ({...s,cantidadClases:e.target.value}))} className={inputClass} placeholder="Ej: 10" /></div>
+                                    <div><label className={labelClass}>Precio ($)</label><input type="number" min="0" value={planForm.precio} onChange={e => setPlanForm(s => ({...s,precio:e.target.value}))} className={inputClass} placeholder="Ej: 5000" /></div>
                                     <div><label className={labelClass}>Descripción</label><input value={planForm.descripcion} onChange={e => setPlanForm(s => ({...s,descripcion:e.target.value}))} className={inputClass} /></div>
                                     <StatusMsg status={planStatus} />
                                     <button type="submit" disabled={planLoading} className={`py-2.5 rounded-lg text-white text-[15px] font-semibold mt-1 transition-all duration-150 active:scale-[0.98] ${planLoading ? 'bg-red-300 cursor-not-allowed' : 'bg-red-600 hover:bg-red-700 shadow-sm'}`}>{planLoading ? 'Guardando...' : 'Guardar Membresía'}</button>

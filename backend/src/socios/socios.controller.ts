@@ -16,6 +16,11 @@ export class SociosController {
     return this.sociosService.findMembresias();
   }
 
+  @Get('vencimientos')
+  getVencimientos() {
+    return this.sociosService.getVencimientos();
+  }
+
   @Post()
   create(@Body() dto: CreateSocioDto) {
     return this.sociosService.create(dto);
@@ -29,14 +34,14 @@ export class SociosController {
   @Post('membresias')
   async createMembresia(@Body() dto: CreateMembresiaDto) {
     try {
-      return await this.sociosService.createMembresia(dto.nombreMembresia);
+      return await this.sociosService.createMembresia(dto.nombreMembresia, dto.cantidadClases, dto.precio);
     } catch (err) {
       throw new HttpException(String(err?.message ?? err), 500);
     }
   }
 
   @Patch('membresias/:id')
-  updateMembresia(@Param('id') id: string, @Body() body: { nombreMembresia?: string }) {
+  updateMembresia(@Param('id') id: string, @Body() body: { nombreMembresia?: string; cantidadClases?: number; precio?: number }) {
     return this.sociosService.updateMembresia(Number(id), body);
   }
 
@@ -63,6 +68,16 @@ export class SociosController {
   @Patch(':dni/ingreso')
   registrarIngreso(@Param('dni') dni: string) {
     return this.sociosService.registrarIngreso(dni);
+  }
+
+  @Get(':dni/pagos')
+  getPagos(@Param('dni') dni: string) {
+    return this.sociosService.getPagos(dni);
+  }
+
+  @Patch(':dni/pago')
+  registrarPago(@Param('dni') dni: string, @Body() body: { monto: number; diasVigencia?: number; soloDeuda?: boolean }) {
+    return this.sociosService.registrarPago(dni, body.monto ?? 0, body.diasVigencia ?? 30, body.soloDeuda ?? false);
   }
 
   @Delete(':dni')

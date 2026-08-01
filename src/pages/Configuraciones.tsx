@@ -169,25 +169,7 @@ const Configuraciones: React.FC<ConfiguracionesProps> = ({ onLogout, onNavigate,
                         />
                     </div>
 
-                    <div className="mb-5">
-                        <p className="mb-2.5 font-medium text-sm text-gray-900">Grosor de letra</p>
-                        <PillGroup
-                            legend="Grosor de letra"
-                            options={[{ label: 'Normal', value: 'normal' }, { label: 'Semi-negrita', value: 'semibold' }, { label: 'Negrita', value: 'bold' }]}
-                            current={fontWeight}
-                            onChange={v => setFontWeight(v as FontWeight)}
-                        />
-                    </div>
 
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="m-0 font-medium text-sm text-gray-900 flex items-center gap-1.5">
-                                <Eye size={16} /> Modo alto contraste
-                            </p>
-                            <p className="mt-0.5 text-xs text-gray-500">Aumenta el contraste para mejor legibilidad</p>
-                        </div>
-                        <ToggleSwitch checked={highContrast} onChange={setHighContrast} label="Modo alto contraste" />
-                    </div>
                 </Section>
             </div>
         </AppShell>

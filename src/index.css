@@ -26,8 +26,6 @@ html.dark {
     body {
         @apply m-0 p-0 font-sans antialiased;
         @apply text-gray-900 bg-white;
-        font-size: var(--app-font-size) !important;
-        font-weight: var(--app-font-weight) !important;
     }
 
     #root {
@@ -119,6 +117,30 @@ html.dark .hover\:shadow-card-hover:hover {
 html.dark .shadow-float {
     box-shadow: 0 4px 22px rgba(0, 168, 232, 0.11) !important;
 }
+
+.app-bg {
+    background-color: #CDDCFA;
+}
+
+html.dark .app-bg {
+    background-color: #121212;
+}
+
+/* ── Font weight scaling ───────────────────────────────────── */
+
+html.app-weight-semibold body,
+html.app-weight-semibold *               { font-weight: 600 !important; }
+html.app-weight-semibold .font-normal    { font-weight: 500 !important; }
+html.app-weight-semibold .font-medium    { font-weight: 600 !important; }
+html.app-weight-semibold .font-semibold  { font-weight: 700 !important; }
+html.app-weight-semibold .font-bold      { font-weight: 800 !important; }
+
+html.app-weight-bold body,
+html.app-weight-bold *                   { font-weight: 800 !important; }
+html.app-weight-bold .font-normal        { font-weight: 700 !important; }
+html.app-weight-bold .font-medium        { font-weight: 700 !important; }
+html.app-weight-bold .font-semibold      { font-weight: 800 !important; }
+html.app-weight-bold .font-bold          { font-weight: 900 !important; }
 
 /* High contrast */
 html.high-contrast #root {

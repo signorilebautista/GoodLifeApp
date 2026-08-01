@@ -31,4 +31,13 @@ export class Socio {
 
   @CreateDateColumn({ name: 'fechaAlta', nullable: true })
   fechaAlta: Date;
+
+  @Column({ name: 'estado', length: 1, default: 'A' })
+  estado: string;
+
+  @Column({ name: 'fechaUltimoPago', type: 'date', nullable: true })
+  fechaUltimoPago: string | null;
+
+  @Column({ name: 'proximoPago', type: 'date', nullable: true })
+  proximoPago: string | null;
 }

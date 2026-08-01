@@ -20,6 +20,5 @@ export class Turnero {
   @Column({ name: 'cantReservas', type: 'numeric', nullable: true })
   cantReservas: string;
 
-  @Column({ name: 'idActividad', type: 'int', nullable: true })
-  idActividad: number;
+
 }

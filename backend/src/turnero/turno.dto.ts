@@ -32,9 +32,6 @@ export class CreateTurnoDto {
   @IsInt()
   idSede: number;
 
-  @IsInt()
-  idActividad: number;
-
   @IsNumberString()
   dniProfesor: string;
 

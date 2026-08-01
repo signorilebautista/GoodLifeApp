@@ -7,7 +7,6 @@ import { TurneroProfesor } from './turnero-profesor.entity';
 import { TurnoSocio } from './turno-socio.entity';
 import { Profesor } from './profesor.entity';
 import { Sede } from './sede.entity';
-import { Actividad } from './actividad.entity';
 import { CreateTurnoDto, UpdateTurnoDto } from './turno.dto';
 import { MailService } from '../mail/mail.service';
 import { AuthService } from '../auth/auth.service';
@@ -20,8 +19,6 @@ export interface TurnoConDetalle {
   sede: string | null;
   estado: boolean | null;
   cantReservas: string | null;
-  idActividad: number | null;
-  actividad: string | null;
   profesorDni: string | null;
   profesorNombre: string | null;
   profesorApellido: string | null;
@@ -40,8 +37,6 @@ export class TurneroService implements OnModuleInit {
     private readonly profesorRepository: Repository<Profesor>,
     @InjectRepository(Sede)
     private readonly sedeRepository: Repository<Sede>,
-    @InjectRepository(Actividad)
-    private readonly actividadRepository: Repository<Actividad>,
     private readonly mailService: MailService,
     private readonly authService: AuthService,
   ) {}
@@ -61,7 +56,6 @@ export class TurneroService implements OnModuleInit {
       )
       .leftJoin(Profesor, 'p', 'p."DNI" = tp."DNIProfe"')
       .leftJoin(Sede, 's', 's."idSede" = t."idSede"')
-      .leftJoin(Actividad, 'a', 'a."idActividad" = t."idActividad"')
       .select('t.dia', 'dia')
       .addSelect('t.horario', 'horario')
       .addSelect('t."horaFin"', 'horaFin')
@@ -69,8 +63,6 @@ export class TurneroService implements OnModuleInit {
       .addSelect('s."nombreSede"', 'sede')
       .addSelect('t.estado', 'estado')
       .addSelect('t."cantReservas"', 'cantReservas')
-      .addSelect('t."idActividad"', 'idActividad')
-      .addSelect('a.actividad', 'actividad')
       .addSelect('p."DNI"', 'profesorDni')
       .addSelect('p.nombre', 'profesorNombre')
       .addSelect('p.apellido', 'profesorApellido');
@@ -92,15 +84,11 @@ export class TurneroService implements OnModuleInit {
   }
 
   findProfesores(): Promise<Profesor[]> {
-    return this.profesorRepository.find({ order: { apellido: 'ASC' } });
+    return this.profesorRepository.find({ where: { estado: 'A' }, order: { apellido: 'ASC' } });
   }
 
   findSedes(): Promise<Sede[]> {
     return this.sedeRepository.find({ order: { idSede: 'ASC' } });
-  }
-
-  findActividades(): Promise<Actividad[]> {
-    return this.actividadRepository.find({ order: { idActividad: 'ASC' } });
   }
 
   async createSede(dto: { nombre: string; direccion?: string }): Promise<Sede> {
@@ -119,6 +107,30 @@ export class TurneroService implements OnModuleInit {
   }
 
   async createProfesor(dto: { dni: string; nombre: string; apellido: string; telefono?: string; mail?: string; idSede?: string }): Promise<Profesor> {
+    // Si ya existe con estado 'B', reactivar en lugar de insertar duplicado
+    const existing = await this.profesorRepository.findOne({ where: { dni: dto.dni } });
+    if (existing) {
+      await this.profesorRepository.update({ dni: dto.dni }, {
+        nombre: dto.nombre,
+        apellido: dto.apellido,
+        telefono: dto.telefono ?? existing.telefono,
+        mail: dto.mail ?? existing.mail,
+        idSede: dto.idSede ?? existing.idSede,
+        estado: 'A',
+      });
+      const reactivado = await this.profesorRepository.findOne({ where: { dni: dto.dni } });
+      if (dto.mail) {
+        try {
+          const tempPassword = this.authService.generateTempPassword();
+          await this.authService.createUsuario(dto.mail, `${dto.nombre} ${dto.apellido}`, dto.dni, tempPassword);
+          await this.mailService.sendWelcome(dto.mail, dto.nombre, tempPassword);
+        } catch (err) {
+          this.logger.error(`No se pudo crear usuario/enviar mail al profesor ${dto.dni}: ${err?.message ?? err}`);
+        }
+      }
+      return reactivado;
+    }
+
     const profesor = this.profesorRepository.create({
       dni: dto.dni,
       nombre: dto.nombre,
@@ -126,6 +138,7 @@ export class TurneroService implements OnModuleInit {
       telefono: dto.telefono ?? null,
       mail: dto.mail ?? null,
       idSede: dto.idSede ?? null,
+      estado: 'A',
     });
     const saved = await this.profesorRepository.save(profesor);
 
@@ -144,10 +157,14 @@ export class TurneroService implements OnModuleInit {
 
   async deleteProfesor(dni: string): Promise<void> {
     const prof = await this.profesorRepository.findOne({ where: { dni } });
+    if (!prof) throw new NotFoundException(`Profesor con DNI ${dni} no encontrado`);
+
+    // Sacar al profesor de los turnos futuros pero conservar su registro
     await this.turneroProfesorRepository.delete({ dniProfe: dni });
-    await this.profesorRepository.manager.query(`DELETE FROM "Profesores-Sedes" WHERE "DNI" = $1`, [dni]);
-    await this.profesorRepository.delete({ dni });
-    if (prof?.mail) {
+    await this.profesorRepository.update({ dni }, { estado: 'B' });
+
+    // Eliminar usuario para que no pueda seguir ingresando al sistema
+    if (prof.mail) {
       await this.authService.deleteByMail(prof.mail).catch(() => {});
     }
   }
@@ -190,7 +207,6 @@ export class TurneroService implements OnModuleInit {
             horario: dto.horario,
             horaFin: dto.horaFin ?? null,
             idSede: dto.idSede,
-            idActividad: dto.idActividad,
             cantReservas: dto.cantReservas ?? '0',
             estado: dto.estado ?? true,
           }),
@@ -256,7 +272,6 @@ export class TurneroService implements OnModuleInit {
             horario: dto.horario,
             horaFin: dto.horaFin ?? null,
             idSede: dto.idSede,
-            idActividad: dto.idActividad,
             cantReservas: dto.cantReservas ?? existing.cantReservas,
             estado: dto.estado ?? existing.estado,
           }),
@@ -275,7 +290,6 @@ export class TurneroService implements OnModuleInit {
           { dia: dto.dia, horario: dto.horario, idSede: dto.idSede },
           {
             horaFin: dto.horaFin ?? null,
-            idActividad: dto.idActividad,
             cantReservas: dto.cantReservas ?? existing.cantReservas,
             estado: dto.estado ?? existing.estado,
           },

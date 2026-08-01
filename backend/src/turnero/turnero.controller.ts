@@ -25,11 +25,6 @@ export class TurneroController {
     return this.turneroService.findSedes();
   }
 
-  @Get('actividades')
-  findActividades() {
-    return this.turneroService.findActividades();
-  }
-
   @Post('sedes')
   async createSede(@Body() dto: CreateSedeDto) {
     try {

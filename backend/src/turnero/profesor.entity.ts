@@ -19,4 +19,7 @@ export class Profesor {
 
   @Column({ nullable: true })
   mail: string;
+
+  @Column({ name: 'estado', length: 1, default: 'A' })
+  estado: string;
 }

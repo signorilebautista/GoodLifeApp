@@ -2,6 +2,8 @@ import { IsInt, IsNumberString, IsOptional, IsString } from 'class-validator';
 
 export class CreateMembresiaDto {
   @IsString() nombreMembresia: string;
+  @IsOptional() @IsInt() cantidadClases?: number;
+  @IsOptional() precio?: number;
 }
 
 export class UpdateSocioDto {
@@ -12,7 +14,7 @@ export class UpdateSocioDto {
   @IsOptional() @IsNumberString() telefono?: string;
   @IsOptional() @IsInt() idMembresia?: number;
   @IsOptional() @IsNumberString() clasesRestantes?: string;
-  @IsOptional() @IsNumberString() deuda?: string;
+  @IsOptional() @IsNumberString({ no_symbols: false }) deuda?: string;
   @IsOptional() @IsString() idProfesor?: string;
 }
 

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Users, Calendar, FileText, BarChart3, Settings, LogOut, UserPlus, LogIn, GraduationCap, Home, Menu, X } from 'lucide-react';
+import { Users, Calendar, FileText, BarChart3, Settings, LogOut, UserPlus, LogIn, GraduationCap, Home, Menu, X, CreditCard } from 'lucide-react';
 import logo from '../assets/logo.png';
 
 interface AppShellProps {
@@ -13,6 +13,7 @@ interface AppShellProps {
 const allMenuItems = [
     { icon: Home, label: 'Menú', path: '/menu-principal', adminOnly: false },
     { icon: Users, label: 'Socios', path: '/socios', adminOnly: false },
+    { icon: CreditCard, label: 'Gestión de Pagos y Venc.', path: '/vencimientos', adminOnly: false },
     { icon: Calendar, label: 'Turnero', path: '/turnero', adminOnly: false },
     { icon: LogIn, label: 'Ingreso', path: '/ingreso', adminOnly: false },
     { icon: FileText, label: 'Planes', path: '/planes', adminOnly: false },
@@ -28,11 +29,12 @@ function getRole(): 'admin' | 'profesor' {
 
 const AppShell: React.FC<AppShellProps> = ({ onLogout, onNavigate, activePath, children, rightPanel }) => {
     const [sidebarOpen, setSidebarOpen] = useState(true);
+    const [confirmLogout, setConfirmLogout] = useState(false);
     const role = getRole();
     const menuItems = allMenuItems.filter(item => !item.adminOnly || role === 'admin');
 
     return (
-        <div className="min-h-screen bg-gray-100 relative">
+        <div className="min-h-screen relative app-bg">
             {/* Floating header */}
             <header className="fixed top-4 left-4 right-4 z-30 h-16 flex items-center gap-3 px-4 rounded-2xl bg-white/80 backdrop-blur-md shadow-float border border-white/60">
                 <button
@@ -79,13 +81,33 @@ const AppShell: React.FC<AppShellProps> = ({ onLogout, onNavigate, activePath, c
                 </nav>
 
                 <div className="border-t border-gray-200">
-                    <button
-                        onClick={onLogout}
-                        className="w-full flex items-center gap-3 px-5 py-4 text-gray-600 hover:text-accent-red hover:bg-red-50 transition-colors duration-150 text-[15px]"
-                    >
-                        <LogOut size={19} />
-                        <span>Cerrar Sesión</span>
-                    </button>
+                    {!confirmLogout ? (
+                        <button
+                            onClick={() => setConfirmLogout(true)}
+                            className="w-full flex items-center gap-3 px-5 py-4 text-gray-600 hover:text-accent-red hover:bg-red-50 transition-colors duration-150 text-[15px]"
+                        >
+                            <LogOut size={19} />
+                            <span>Cerrar Sesión</span>
+                        </button>
+                    ) : (
+                        <div className="px-4 py-3 flex flex-col gap-2">
+                            <p className="text-xs font-semibold text-gray-700 text-center">¿Cerrar sesión?</p>
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={() => setConfirmLogout(false)}
+                                    className="flex-1 py-1.5 rounded-lg border border-gray-200 text-xs text-gray-600 hover:bg-gray-50 transition-colors"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    onClick={onLogout}
+                                    className="flex-1 py-1.5 rounded-lg bg-red-500 hover:bg-red-600 text-white text-xs font-semibold transition-colors"
+                                >
+                                    Salir
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </aside>
 

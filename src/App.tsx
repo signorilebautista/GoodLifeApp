@@ -11,12 +11,13 @@ import Estadisticas from './pages/Estadisticas';
 import Ingreso from './pages/Ingreso';
 import Profesores from './pages/Profesores';
 import CambiarContrasena from './pages/CambiarContrasena';
+import Vencimientos from './pages/Vencimientos';
 import LoadingScreen from './components/LoadingScreen';
 import { prefetchRoute } from './utils/prefetch';
 import { SettingsProvider } from './context/SettingsContext';
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-const MIN_NAV_TRANSITION_MS = 500;
+const MIN_NAV_TRANSITION_MS = 0;
 
 // Sesión: si el usuario marcó "Recordarme" persistimos en localStorage
 // (sobrevive al cierre del navegador); si no, en sessionStorage como antes.
@@ -127,6 +128,10 @@ function AppContent() {
             <Route
                 path="/profesores"
                 element={isLoggedIn ? <Profesores onLogout={handleLogout} onNavigate={handleNavigate} role={currentRole} /> : <Navigate to="/" replace />}
+            />
+            <Route
+                path="/vencimientos"
+                element={isLoggedIn ? <Vencimientos onLogout={handleLogout} onNavigate={handleNavigate} /> : <Navigate to="/" replace />}
             />
             <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

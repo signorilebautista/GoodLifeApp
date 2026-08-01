@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { X, Search, LayoutGrid, List, Check } from 'lucide-react';
+import { X, Search, LayoutGrid, List, Check, DollarSign } from 'lucide-react';
 import AppShell from '../components/AppShell';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
@@ -26,6 +26,8 @@ interface Member {
 interface Membresia {
     idMembresia: number;
     nombreMembresia: string;
+    cantidadClases: number | null;
+    precio: number | null;
 }
 
 interface Profesor {
@@ -90,6 +92,14 @@ const Socios: React.FC<SociosProps> = ({ onLogout, onNavigate }) => {
     const [confirmDelete, setConfirmDelete] = useState(false);
     const [confirmPlan, setConfirmPlan] = useState(false);
     const [confirmProfesor, setConfirmProfesor] = useState(false);
+
+    // Panel de pago del socio
+    const [showPagoPanel, setShowPagoPanel] = useState(false);
+    const [modoPago, setModoPago] = useState<'deuda' | 'membresia'>('membresia');
+    const [montoPago, setMontoPago] = useState('');
+    const [diasPago, setDiasPago] = useState('30');
+    const [pagando, setPagando] = useState(false);
+    const [resultadoPago, setResultadoPago] = useState<{ ok: boolean; nuevaDeuda: number; mensaje: string } | null>(null);
 
     const fetchMembers = async () => {
         setLoading(true);
@@ -167,6 +177,51 @@ const Socios: React.FC<SociosProps> = ({ onLogout, onNavigate }) => {
         }
     };
 
+    const openPagoPanel = () => {
+        setShowPagoPanel(true);
+        setShowPlanModal(false);
+        setShowProfesorModal(false);
+        setConfirmDelete(false);
+        setModoPago('membresia');
+        setMontoPago('');
+        setDiasPago('30');
+        setResultadoPago(null);
+    };
+
+    const handlePago = async () => {
+        if (!selectedMember) return;
+        setPagando(true);
+        try {
+            const res = await fetch(`${API_URL}/socios/${selectedMember.dni}/pago`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    monto: Number(montoPago) || 0,
+                    diasVigencia: Number(diasPago) || 30,
+                    soloDeuda: modoPago === 'deuda',
+                }),
+            });
+            const data = await res.json();
+            setResultadoPago(data);
+            if (data.ok) {
+                setSelectedMember(m => m ? {
+                    ...m,
+                    deuda: String(data.nuevaDeuda),
+                    ...(data.clasesRestantes !== undefined && { clasesRestantes: data.clasesRestantes }),
+                } : m);
+                setMembers(prev => prev.map(m => m.dni === selectedMember.dni ? {
+                    ...m,
+                    deuda: String(data.nuevaDeuda),
+                    ...(data.clasesRestantes !== undefined && { clasesRestantes: data.clasesRestantes }),
+                } : m));
+            }
+        } catch {
+            setResultadoPago({ ok: false, nuevaDeuda: 0, mensaje: 'Error al registrar el pago.' });
+        } finally {
+            setPagando(false);
+        }
+    };
+
     const openPlanModal = () => {
         setSelectedPlanId(selectedMember?.idMembresia != null ? String(selectedMember.idMembresia) : '');
         setPlanStatus(null);
@@ -174,6 +229,8 @@ const Socios: React.FC<SociosProps> = ({ onLogout, onNavigate }) => {
         setShowPlanModal(true);
         setShowProfesorModal(false);
         setConfirmDelete(false);
+        setShowPagoPanel(false);
+        setResultadoPago(null);
     };
 
     const handleCambioPlan = async () => {
@@ -189,8 +246,8 @@ const Socios: React.FC<SociosProps> = ({ onLogout, onNavigate }) => {
             const updated = await res.json();
             const planNombre = membresias.find(m => m.idMembresia === Number(selectedPlanId))?.nombreMembresia ?? 'Sin membresía';
             setPlanStatus({ msg: `Plan actualizado a "${planNombre}".`, ok: true });
-            setSelectedMember(m => m ? { ...m, idMembresia: Number(selectedPlanId) || null, plan: planNombre } : m);
-            setMembers(prev => prev.map(m => m.dni === selectedMember.dni ? { ...m, idMembresia: updated.idMembresia, plan: planNombre } : m));
+            setSelectedMember(m => m ? { ...m, idMembresia: Number(selectedPlanId) || null, plan: planNombre, clasesRestantes: updated.clasesRestantes ?? m.clasesRestantes } : m);
+            setMembers(prev => prev.map(m => m.dni === selectedMember.dni ? { ...m, idMembresia: updated.idMembresia, plan: planNombre, clasesRestantes: updated.clasesRestantes ?? m.clasesRestantes } : m));
         } catch (err) {
             setPlanStatus({ msg: err instanceof Error ? err.message : 'Error', ok: false });
         } finally { setPlanLoading(false); }
@@ -203,6 +260,8 @@ const Socios: React.FC<SociosProps> = ({ onLogout, onNavigate }) => {
         setShowProfesorModal(true);
         setShowPlanModal(false);
         setConfirmDelete(false);
+        setShowPagoPanel(false);
+        setResultadoPago(null);
     };
 
     const handleCambioProfesor = async () => {
@@ -234,7 +293,8 @@ const Socios: React.FC<SociosProps> = ({ onLogout, onNavigate }) => {
 
     const formatDeuda = (deuda: string | null) => {
         const value = Number(deuda ?? 0);
-        return `$${Math.abs(value).toLocaleString()}`;
+        if (value < 0) return `-$${Math.abs(value).toLocaleString()}`;
+        return `$${value.toLocaleString()}`;
     };
 
     const avatarInitials = (nombre: string, apellido: string) =>
@@ -376,7 +436,7 @@ const Socios: React.FC<SociosProps> = ({ onLogout, onNavigate }) => {
                             <div className="grid grid-cols-3 gap-3">
                                 <div>
                                     <label className={labelClass}>Membresía</label>
-                                    <select value={newMember.idMembresia} onChange={(e) => setNewMember({ ...newMember, idMembresia: e.target.value })} className={inputClass}>
+                                    <select value={newMember.idMembresia} onChange={(e) => { const m = membresias.find(m => String(m.idMembresia) === e.target.value); setNewMember(prev => ({ ...prev, idMembresia: e.target.value, clasesRestantes: m?.cantidadClases != null ? String(m.cantidadClases) : prev.clasesRestantes, deuda: m?.precio != null ? String(-m.precio) : prev.deuda })); }} className={inputClass}>
                                         <option value="">Sin membresía</option>
                                         {membresias.map((m) => <option key={m.idMembresia} value={m.idMembresia}>{m.nombreMembresia}</option>)}
                                     </select>
@@ -412,7 +472,7 @@ const Socios: React.FC<SociosProps> = ({ onLogout, onNavigate }) => {
             {/* Detail Modal */}
             {selectedMember && (
                 <div
-                    onClick={() => { setSelectedMember(null); setShowPlanModal(false); setShowProfesorModal(false); setConfirmDelete(false); }}
+                    onClick={() => { setSelectedMember(null); setShowPlanModal(false); setShowProfesorModal(false); setConfirmDelete(false); setShowPagoPanel(false); setResultadoPago(null); }}
                     className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[1000] p-4 animate-fadeIn"
                 >
                     <div
@@ -420,7 +480,7 @@ const Socios: React.FC<SociosProps> = ({ onLogout, onNavigate }) => {
                         className="bg-white rounded-2xl p-8 max-w-3xl w-full max-h-[90vh] overflow-y-auto relative shadow-2xl animate-popIn"
                     >
                         <button
-                            onClick={() => { setSelectedMember(null); setShowPlanModal(false); setShowProfesorModal(false); setConfirmDelete(false); }}
+                            onClick={() => { setSelectedMember(null); setShowPlanModal(false); setShowProfesorModal(false); setConfirmDelete(false); setShowPagoPanel(false); setResultadoPago(null); }}
                             className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 hover:rotate-90 transition-all duration-200 p-1"
                         >
                             <X size={22} />
@@ -466,7 +526,7 @@ const Socios: React.FC<SociosProps> = ({ onLogout, onNavigate }) => {
                         <div className="grid grid-cols-2 gap-4 mb-8">
                             <div className="bg-gray-100 rounded-xl p-5">
                                 <p className="text-base font-semibold text-gray-900 mb-1.5">Deuda</p>
-                                <p className={`text-4xl font-bold ${Number(selectedMember.deuda ?? 0) > 0 ? 'text-red-500' : 'text-emerald-500'}`}>
+                                <p className={`text-4xl font-bold ${Number(selectedMember.deuda ?? 0) < 0 ? 'text-red-500' : 'text-emerald-500'}`}>
                                     {formatDeuda(selectedMember.deuda)}
                                 </p>
                             </div>
@@ -487,16 +547,123 @@ const Socios: React.FC<SociosProps> = ({ onLogout, onNavigate }) => {
                         </div>
 
                         <div className="flex gap-3 flex-wrap">
+                            <button onClick={openPagoPanel} className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white px-5 py-2.5 rounded-lg text-sm font-medium transition-all duration-150">
+                                <DollarSign size={15} /> Pago
+                            </button>
                             <button onClick={openPlanModal} className="bg-gray-800 hover:bg-gray-700 active:scale-95 text-white px-5 py-2.5 rounded-lg text-sm font-medium transition-all duration-150">
                                 Cambio de membresía
                             </button>
                             <button onClick={openProfesorModal} className="bg-gray-800 hover:bg-gray-700 active:scale-95 text-white px-5 py-2.5 rounded-lg text-sm font-medium transition-all duration-150">
                                 Cambio de profesor
                             </button>
-                            <button onClick={() => { setConfirmDelete(true); setShowPlanModal(false); setShowProfesorModal(false); }} className="bg-red-500 hover:bg-red-600 active:scale-95 text-white px-5 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 ml-auto">
+                            <button onClick={() => { setConfirmDelete(true); setShowPlanModal(false); setShowProfesorModal(false); setShowPagoPanel(false); }} className="bg-red-500 hover:bg-red-600 active:scale-95 text-white px-5 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 ml-auto">
                                 Eliminar
                             </button>
                         </div>
+
+                        {showPagoPanel && (() => {
+                            const deudaActual = Number(selectedMember.deuda ?? 0);
+                            const precioMem = membresias.find(m => m.idMembresia === selectedMember.idMembresia)?.precio ?? 0;
+                            const montoNum = Number(montoPago) || 0;
+                            const previewDeuda = modoPago === 'deuda'
+                                ? deudaActual + montoNum
+                                : deudaActual + montoNum - precioMem;
+                            const fmt = (n: number) => `$${Math.abs(n).toLocaleString('es-AR')}`;
+                            const msgDeuda = (d: number) =>
+                                d < 0 ? { texto: `Falta pagar ${fmt(d)}`, color: 'bg-red-50 text-red-700' }
+                                : d === 0 ? { texto: 'Deuda pagada', color: 'bg-emerald-50 text-emerald-700' }
+                                : { texto: `Deuda pagada y tiene a favor ${fmt(d)}`, color: 'bg-emerald-50 text-emerald-700' };
+                            return (
+                                <div className="mt-5 bg-gray-100 rounded-xl p-5 flex flex-col gap-3 animate-fadeIn">
+                                    <div className="flex justify-between items-center">
+                                        <p className="text-[15px] font-semibold text-gray-900">Registrar pago</p>
+                                        <button onClick={() => { setShowPagoPanel(false); setResultadoPago(null); }} className="text-gray-400 hover:text-gray-700"><X size={18} /></button>
+                                    </div>
+
+                                    {/* Deuda actual */}
+                                    <div className="flex justify-between text-sm bg-white rounded-lg px-3 py-2">
+                                        <span className="text-gray-500">Deuda actual</span>
+                                        <span className={`font-semibold ${deudaActual < 0 ? 'text-red-600' : deudaActual > 0 ? 'text-emerald-600' : 'text-gray-600'}`}>
+                                            {deudaActual < 0 ? `−${fmt(deudaActual)}` : deudaActual > 0 ? `+${fmt(deudaActual)}` : '$0'}
+                                        </span>
+                                    </div>
+
+                                    {/* Selector de modo */}
+                                    {!resultadoPago && (
+                                        <>
+                                            <div className="flex rounded-xl overflow-hidden border border-gray-200">
+                                                <button
+                                                    onClick={() => { setModoPago('deuda'); setMontoPago(deudaActual < 0 ? String(Math.abs(deudaActual)) : ''); }}
+                                                    className={`flex-1 py-2 text-sm font-medium transition-colors ${modoPago === 'deuda' ? 'bg-amber-500 text-white' : 'bg-white text-gray-500 hover:bg-gray-50'}`}
+                                                >
+                                                    Solo deuda
+                                                </button>
+                                                <button
+                                                    onClick={() => { setModoPago('membresia'); setMontoPago(''); }}
+                                                    className={`flex-1 py-2 text-sm font-medium border-l border-gray-200 transition-colors ${modoPago === 'membresia' ? 'bg-emerald-600 text-white' : 'bg-white text-gray-500 hover:bg-gray-50'}`}
+                                                >
+                                                    Deuda + membresía
+                                                </button>
+                                            </div>
+
+                                            <div className="flex gap-3">
+                                                <div className={modoPago === 'deuda' ? 'w-full' : 'flex-1'}>
+                                                    <label className="block text-xs font-medium text-gray-600 mb-1">Monto recibido ($)</label>
+                                                    <input
+                                                        type="number"
+                                                        min={0}
+                                                        value={montoPago}
+                                                        onChange={e => setMontoPago(e.target.value)}
+                                                        placeholder="0"
+                                                        className={inputClass}
+                                                    />
+                                                </div>
+                                                {modoPago === 'membresia' && (
+                                                    <div className="flex-1">
+                                                        <label className="block text-xs font-medium text-gray-600 mb-1">Días de vigencia</label>
+                                                        <input
+                                                            type="number"
+                                                            min={1}
+                                                            value={diasPago}
+                                                            onChange={e => setDiasPago(e.target.value)}
+                                                            className={inputClass}
+                                                        />
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {montoNum > 0 && (
+                                                <div className={`rounded-lg px-3 py-2 text-sm font-medium ${msgDeuda(previewDeuda).color}`}>
+                                                    {msgDeuda(previewDeuda).texto}
+                                                </div>
+                                            )}
+
+                                            <button
+                                                onClick={handlePago}
+                                                disabled={pagando || montoNum <= 0}
+                                                className="py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-semibold transition-colors disabled:opacity-50"
+                                            >
+                                                {pagando ? 'Registrando...' : 'Confirmar pago'}
+                                            </button>
+                                        </>
+                                    )}
+
+                                    {resultadoPago && (
+                                        <>
+                                            <div className={`rounded-lg px-3 py-3 text-sm font-medium text-center ${resultadoPago.ok ? msgDeuda(resultadoPago.nuevaDeuda).color : 'bg-red-50 text-red-700'}`}>
+                                                {resultadoPago.ok ? msgDeuda(resultadoPago.nuevaDeuda).texto : resultadoPago.mensaje}
+                                            </div>
+                                            <button
+                                                onClick={() => { setResultadoPago(null); setMontoPago(''); setDiasPago('30'); }}
+                                                className="py-2 bg-white border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors"
+                                            >
+                                                Nuevo pago
+                                            </button>
+                                        </>
+                                    )}
+                                </div>
+                            );
+                        })()}
 
                         {confirmDelete && (
                             <div className="mt-5 bg-red-50 border border-red-100 rounded-xl p-5 flex flex-col gap-3 animate-fadeIn">

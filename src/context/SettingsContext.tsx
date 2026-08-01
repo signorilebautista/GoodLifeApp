@@ -19,16 +19,16 @@ interface SettingsContextValue {
 
 const SettingsContext = createContext<SettingsContextValue | null>(null);
 
-const fontSizeMap: Record<FontSize, string> = {
-    small: '13px',
-    medium: '16px',
-    large: '20px',
+const fontSizeValues: Record<FontSize, string> = {
+    small:  '16px',
+    medium: '22px',
+    large:  '28px',
 };
 
-const fontWeightMap: Record<FontWeight, string> = {
-    normal: '400',
-    semibold: '600',
-    bold: '700',
+const fontWeightClasses: Record<FontWeight, string> = {
+    normal:  'app-weight-normal',
+    semibold:'app-weight-semibold',
+    bold:    'app-weight-bold',
 };
 
 export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -49,8 +49,11 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         const html = document.documentElement;
         html.classList.toggle('dark', theme === 'dark');
         html.classList.toggle('high-contrast', highContrast);
-        html.style.setProperty('--app-font-size', fontSizeMap[fontSize]);
-        html.style.setProperty('--app-font-weight', fontWeightMap[fontWeight]);
+        // Font size: cambia la base rem del html (escala todo lo que usa rem)
+        html.style.fontSize = fontSizeValues[fontSize];
+        // Font weight: clase en html para overrides CSS
+        Object.values(fontWeightClasses).forEach(c => html.classList.remove(c));
+        html.classList.add(fontWeightClasses[fontWeight]);
     }, [theme, fontSize, fontWeight, highContrast]);
 
     const setTheme = (t: Theme) => { localStorage.setItem('cfg_theme', t); setThemeState(t); };

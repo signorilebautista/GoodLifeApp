@@ -5,8 +5,8 @@ import { TypeOrmModule, TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { SociosModule } from './socios/socios.module';
 import { TurneroModule } from './turnero/turnero.module';
 import { StatsModule } from './stats/stats.module';
-import { EjerciciosModule } from './ejercicios/ejercicios.module';
 import { AuthModule } from './auth/auth.module';
+import { EjerciciosModule } from './ejercicios/ejercicios.module';
 
 @Module({
   imports: [
@@ -41,8 +41,8 @@ import { AuthModule } from './auth/auth.module';
     SociosModule,
     TurneroModule,
     StatsModule,
-    EjerciciosModule,
     AuthModule,
+    EjerciciosModule,
   ],
 })
 export class AppModule {}

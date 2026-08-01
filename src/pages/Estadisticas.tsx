@@ -51,6 +51,7 @@ interface DayPoint {
     key: string;
     label: string;
     isMonthStart: boolean;
+    isBiweekly: boolean;
     asistencias: number;
     nuevos: number;
     bajas: number;
@@ -73,10 +74,12 @@ function buildDayPoints(
 
     while (cur <= end) {
         const key = cur.toISOString().slice(0, 10);
+        const day = cur.getDate();
         result.push({
             key,
             label: toDayLabel(key),
-            isMonthStart: cur.getDate() === 1,
+            isMonthStart: day === 1,
+            isBiweekly: day === 1 || day === 16,
             asistencias: asMap.get(key) ?? 0,
             nuevos: nvMap.get(key) ?? 0,
             bajas: bjMap.get(key) ?? 0,
@@ -86,11 +89,12 @@ function buildDayPoints(
     return result;
 }
 
-// XAxis tick that only renders on month starts
-const MonthTick = (props: any) => {
-    const { x, y, payload, data } = props;
+const AxisTick = (props: any) => {
+    const { x, y, payload, data, rango } = props;
     const point = (data as DayPoint[]).find(d => d.label === payload.value);
-    if (!point?.isMonthStart) return null;
+    if (!point) return null;
+    const show = rango === '3m' ? point.isBiweekly : point.isMonthStart;
+    if (!show) return null;
     return (
         <text x={x} y={y + 14} textAnchor="middle" fontSize={11} fill="#374151" fontWeight={600}>
             {payload.value}
@@ -134,7 +138,9 @@ const Estadisticas: React.FC<EstadisticasProps> = ({ onLogout, onNavigate }) => 
     const totalNuevos = data.reduce((s, d) => s + d.nuevos, 0);
     const totalBajas = data.reduce((s, d) => s + d.bajas, 0);
 
-    const monthStarts = data.filter(d => d.isMonthStart).map(d => d.label);
+    const refLines = rango === '3m'
+        ? data.filter(d => d.isBiweekly).map(d => d.label)
+        : data.filter(d => d.isMonthStart).map(d => d.label);
 
     return (
         <AppShell onLogout={onLogout} onNavigate={onNavigate} activePath="/estadisticas">
@@ -182,18 +188,18 @@ const Estadisticas: React.FC<EstadisticasProps> = ({ onLogout, onNavigate }) => 
                     {!loading && !error && data.length > 0 && (
                         <ResponsiveContainer width="100%" height={380}>
                             <ComposedChart data={data} margin={{ top: 10, right: 20, left: 0, bottom: 20 }}>
-                                <CartesianGrid strokeDasharray="3 3" stroke="#F0F0F0" />
+                                <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" vertical={false} />
                                 <XAxis
                                     dataKey="label"
-                                    tick={<MonthTick data={data} />}
+                                    tick={<AxisTick data={data} rango={rango} />}
                                     interval={0}
                                     height={36}
                                 />
                                 <YAxis allowDecimals={false} domain={[0, 20]} tick={{ fontSize: 12 }} />
                                 <Tooltip />
                                 <Legend />
-                                {monthStarts.map(label => (
-                                    <ReferenceLine key={label} x={label} stroke="#9CA3AF" strokeDasharray="4 3" />
+                                {refLines.map(label => (
+                                    <ReferenceLine key={label} x={label} stroke="#6B7280" strokeDasharray="5 3" strokeWidth={1.5} />
                                 ))}
                                 <Bar dataKey="asistencias" name="Asistencias" fill="#00A8E8" radius={[3, 3, 0, 0]} />
                                 <Bar dataKey="nuevos" name="Nuevos socios" fill="#16A34A" radius={[3, 3, 0, 0]} />

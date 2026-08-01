@@ -7,4 +7,10 @@ export class Membresia {
 
   @Column({ name: 'nombreMembresia', nullable: true })
   nombreMembresia: string;
+
+  @Column({ name: 'cantidadClases', nullable: true, type: 'int' })
+  cantidadClases: number | null;
+
+  @Column({ name: 'precio', type: 'numeric', nullable: true })
+  precio: number | null;
 }

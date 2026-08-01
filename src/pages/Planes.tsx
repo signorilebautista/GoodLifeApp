@@ -291,11 +291,6 @@ const Planes: React.FC<PlanesProps> = ({ onLogout, onNavigate }) => {
                                                     {s.clasesRestantes} clases
                                                 </span>
                                             )}
-                                            {s.deuda != null && Number(s.deuda) > 0 && (
-                                                <span className="text-[11px] bg-red-50 text-red-600 rounded px-1.5 py-0.5">
-                                                    Deuda ${Math.abs(Number(s.deuda)).toLocaleString()}
-                                                </span>
-                                            )}
                                         </div>
                                     </div>
                                 </button>
@@ -346,7 +341,6 @@ const Planes: React.FC<PlanesProps> = ({ onLogout, onNavigate }) => {
                             {[
                                 ['Membresía', selectedSocio.plan ?? 'Sin membresía'],
                                 ['Clases restantes', selectedSocio.clasesRestantes ?? '0'],
-                                ['Deuda', selectedSocio.deuda != null ? `$${Math.abs(Number(selectedSocio.deuda)).toLocaleString()}` : '$0'],
                                 ['Mail', selectedSocio.mail ?? '—'],
                                 ['Teléfono', selectedSocio.telefono ?? '—'],
                             ].map(([label, value]) => (
