@@ -7,6 +7,10 @@
     "backend": {
       "root": "backend",
       "entrypoint": "src/main.ts"
+    },
+    "socios": {
+      "root": "socios-frontend",
+      "framework": "vite"
     }
   },
   "rewrites": [
@@ -15,6 +19,13 @@
       "destination": {
         "type": "service",
         "service": "backend"
+      }
+    },
+    {
+      "source": "/app(/.*)?",
+      "destination": {
+        "type": "service",
+        "service": "socios"
       }
     },
     {
