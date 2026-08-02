@@ -1,5 +1,10 @@
 import { IsInt, IsNumberString, IsOptional, IsString } from 'class-validator';
 
+export class LoginSocioDto {
+  @IsNumberString()
+  dni: string;
+}
+
 export class CreateMembresiaDto {
   @IsString() nombreMembresia: string;
   @IsOptional() @IsInt() cantidadClases?: number;

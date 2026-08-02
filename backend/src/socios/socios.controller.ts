@@ -1,10 +1,15 @@
 import { Body, Controller, Delete, Get, HttpException, Param, Patch, Post, Put } from '@nestjs/common';
 import { SociosService } from './socios.service';
-import { CreateMembresiaDto, CreateSocioDto, UpdateSocioDto } from './socio.dto';
+import { CreateMembresiaDto, CreateSocioDto, LoginSocioDto, UpdateSocioDto } from './socio.dto';
 
 @Controller('socios')
 export class SociosController {
   constructor(private readonly sociosService: SociosService) {}
+
+  @Post('login')
+  loginPorDni(@Body() dto: LoginSocioDto) {
+    return this.sociosService.loginPorDni(dto.dni);
+  }
 
   @Get()
   findAll() {
@@ -35,8 +40,8 @@ export class SociosController {
   async createMembresia(@Body() dto: CreateMembresiaDto) {
     try {
       return await this.sociosService.createMembresia(dto.nombreMembresia, dto.cantidadClases, dto.precio);
-    } catch (err) {
-      throw new HttpException(String(err?.message ?? err), 500);
+    } catch {
+      throw new HttpException('No se pudo crear el plan. Probá de nuevo.', 500);
     }
   }
 

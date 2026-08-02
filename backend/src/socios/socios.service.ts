@@ -371,6 +371,31 @@ export class SociosService {
     return row?.plan ?? null;
   }
 
+  async loginPorDni(dni: string): Promise<Record<string, unknown>> {
+    const row = await this.sociosRepository
+      .createQueryBuilder('s')
+      .leftJoin(PlanSocio, 'ps', 'ps."dniSocio"::text = s."DNI"::text')
+      .leftJoin(Membresia, 'm', 'm."idMembresia" = s."idMembresia"')
+      .select('s."DNI"', 'DNI')
+      .addSelect('s.nombre', 'nombre')
+      .addSelect('s.apellido', 'apellido')
+      .addSelect('s.direccion', 'direccion')
+      .addSelect('s.mail', 'mail')
+      .addSelect('s.telefono', 'telefono')
+      .addSelect('s."idMembresia"', 'idMembresia')
+      .addSelect('s."clasesRestantes"', 'clasesRestantes')
+      .addSelect('m."nombreMembresia"', 'nombreMembresia')
+      .addSelect('s."idProfesor"', 'idProfesor')
+      .addSelect('s."fechaUltimoPago"', 'fechaUltimoPago')
+      .addSelect('s."proximoPago"', 'proximoPago')
+      .addSelect('ps.plan', 'plan')
+      .where('s."DNI"::text = :dni', { dni })
+      .getRawOne();
+
+    if (!row) throw new NotFoundException('DNI no registrado');
+    return row;
+  }
+
   async savePlan(dniSocio: string, plan: object): Promise<void> {
     await this.planRepository.upsert({ dniSocio, plan }, ['dniSocio']);
   }

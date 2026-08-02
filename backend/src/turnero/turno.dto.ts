@@ -32,8 +32,9 @@ export class CreateTurnoDto {
   @IsInt()
   idSede: number;
 
+  @IsOptional()
   @IsNumberString()
-  dniProfesor: string;
+  dniProfesor?: string;
 
   @IsOptional()
   @IsNumberString()
@@ -42,6 +43,13 @@ export class CreateTurnoDto {
   @IsOptional()
   @IsBoolean()
   estado?: boolean;
+}
+
+export class CreateReservaDto {
+  @IsNumberString() dni: string;
+  @IsInt() idSede: number;
+  @IsString() dia: string;
+  @IsString() horario: string;
 }
 
 export class UpdateTurnoDto extends CreateTurnoDto {

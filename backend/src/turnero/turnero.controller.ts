@@ -1,10 +1,49 @@
 import { Body, Controller, Delete, Get, HttpException, Param, ParseIntPipe, Patch, Post, Put, Query } from '@nestjs/common';
 import { TurneroService } from './turnero.service';
-import { CreateProfesorDto, CreateSedeDto, CreateTurnoDto, UpdateTurnoDto } from './turno.dto';
+import { CreateProfesorDto, CreateReservaDto, CreateSedeDto, CreateTurnoDto, UpdateTurnoDto } from './turno.dto';
 
 @Controller('turnero')
 export class TurneroController {
   constructor(private readonly turneroService: TurneroService) {}
+
+  @Get('disponibles')
+  findDisponibles(@Query('idSede') idSede: string, @Query('dia') dia: string) {
+    return this.turneroService.findDisponibles(Number(idSede), dia);
+  }
+
+  @Get('en-curso')
+  findEnCurso() {
+    return this.turneroService.findEnCurso();
+  }
+
+  @Get('asistentes')
+  findAsistentes(
+    @Query('dia') dia: string,
+    @Query('horario') horario: string,
+    @Query('idSede') idSede: string,
+  ) {
+    return this.turneroService.findAsistentes(dia, horario, Number(idSede));
+  }
+
+  @Get('reservas/:dni')
+  findReservasBySocio(@Param('dni') dni: string) {
+    return this.turneroService.findReservasBySocio(dni);
+  }
+
+  @Post('reservas')
+  crearReserva(@Body() dto: CreateReservaDto) {
+    return this.turneroService.crearReserva(dto.dni, dto.idSede, dto.dia, dto.horario);
+  }
+
+  @Delete('reservas')
+  cancelarReserva(
+    @Query('dni') dni: string,
+    @Query('idSede') idSede: string,
+    @Query('dia') dia: string,
+    @Query('horario') horario: string,
+  ) {
+    return this.turneroService.cancelarReserva(dni, Number(idSede), dia, horario);
+  }
 
   @Get()
   findAll(
@@ -29,8 +68,8 @@ export class TurneroController {
   async createSede(@Body() dto: CreateSedeDto) {
     try {
       return await this.turneroService.createSede(dto);
-    } catch (err) {
-      throw new HttpException(String(err?.message ?? err), 500);
+    } catch {
+      throw new HttpException('No se pudo crear la sede. Probá de nuevo.', 500);
     }
   }
 
@@ -48,8 +87,8 @@ export class TurneroController {
   async createProfesor(@Body() dto: CreateProfesorDto) {
     try {
       return await this.turneroService.createProfesor(dto);
-    } catch (err) {
-      throw new HttpException(String(err?.message ?? err), 500);
+    } catch {
+      throw new HttpException('No se pudo crear el profesor. Probá de nuevo.', 500);
     }
   }
 
@@ -62,8 +101,8 @@ export class TurneroController {
   async reenviarMail(@Param('dni') dni: string) {
     try {
       return await this.turneroService.reenviarMailProfesor(dni);
-    } catch (err) {
-      throw new HttpException(String(err?.message ?? err), 500);
+    } catch {
+      throw new HttpException('No se pudo reenviar el mail. Probá de nuevo.', 500);
     }
   }
 

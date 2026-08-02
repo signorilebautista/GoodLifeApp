@@ -11,6 +11,23 @@ import { CreateTurnoDto, UpdateTurnoDto } from './turno.dto';
 import { MailService } from '../mail/mail.service';
 import { AuthService } from '../auth/auth.service';
 
+/** El gimnasio opera en hora Argentina; los horarios se guardan como hora local, no UTC. */
+const GYM_TIMEZONE = 'America/Argentina/Buenos_Aires';
+const GYM_UTC_OFFSET = '-03:00';
+
+function nowEnGym(): { fecha: string; hora: string } {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: GYM_TIMEZONE,
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
+  }).formatToParts(new Date());
+  const get = (type: string) => parts.find((p) => p.type === type)?.value ?? '00';
+  return {
+    fecha: `${get('year')}-${get('month')}-${get('day')}`,
+    hora: `${get('hour')}:${get('minute')}:${get('second')}`,
+  };
+}
+
 export interface TurnoConDetalle {
   dia: string;
   horario: string;
@@ -19,6 +36,7 @@ export interface TurnoConDetalle {
   sede: string | null;
   estado: boolean | null;
   cantReservas: string | null;
+  reservas: string;
   profesorDni: string | null;
   profesorNombre: string | null;
   profesorApellido: string | null;
@@ -33,6 +51,8 @@ export class TurneroService implements OnModuleInit {
     private readonly turneroRepository: Repository<Turnero>,
     @InjectRepository(TurneroProfesor)
     private readonly turneroProfesorRepository: Repository<TurneroProfesor>,
+    @InjectRepository(TurnoSocio)
+    private readonly turnoSocioRepository: Repository<TurnoSocio>,
     @InjectRepository(Profesor)
     private readonly profesorRepository: Repository<Profesor>,
     @InjectRepository(Sede)
@@ -56,6 +76,7 @@ export class TurneroService implements OnModuleInit {
       )
       .leftJoin(Profesor, 'p', 'p."DNI" = tp."DNIProfe"')
       .leftJoin(Sede, 's', 's."idSede" = t."idSede"')
+      .leftJoin(TurnoSocio, 'ts', 'ts."idSede" = t."idSede" AND ts.dia = t.dia AND ts.horario = t.horario')
       .select('t.dia', 'dia')
       .addSelect('t.horario', 'horario')
       .addSelect('t."horaFin"', 'horaFin')
@@ -63,9 +84,20 @@ export class TurneroService implements OnModuleInit {
       .addSelect('s."nombreSede"', 'sede')
       .addSelect('t.estado', 'estado')
       .addSelect('t."cantReservas"', 'cantReservas')
+      .addSelect('COUNT(DISTINCT ts."DNISocio")', 'reservas')
       .addSelect('p."DNI"', 'profesorDni')
       .addSelect('p.nombre', 'profesorNombre')
-      .addSelect('p.apellido', 'profesorApellido');
+      .addSelect('p.apellido', 'profesorApellido')
+      .groupBy('t.dia')
+      .addGroupBy('t.horario')
+      .addGroupBy('t."horaFin"')
+      .addGroupBy('t."idSede"')
+      .addGroupBy('s."nombreSede"')
+      .addGroupBy('t.estado')
+      .addGroupBy('t."cantReservas"')
+      .addGroupBy('p."DNI"')
+      .addGroupBy('p.nombre')
+      .addGroupBy('p.apellido');
 
     if (filters.desde) {
       qb.andWhere('t.dia >= :desde', { desde: filters.desde });
@@ -211,14 +243,16 @@ export class TurneroService implements OnModuleInit {
             estado: dto.estado ?? true,
           }),
         );
-        await manager.save(
-          manager.create(TurneroProfesor, {
-            dniProfe: dto.dniProfesor,
-            dia: dto.dia,
-            horario: dto.horario,
-            idSede: dto.idSede,
-          }),
-        );
+        if (dto.dniProfesor) {
+          await manager.save(
+            manager.create(TurneroProfesor, {
+              dniProfe: dto.dniProfesor,
+              dia: dto.dia,
+              horario: dto.horario,
+              idSede: dto.idSede,
+            }),
+          );
+        }
       });
     } catch (err) {
       if (this.isUniqueViolation(err)) {
@@ -276,14 +310,16 @@ export class TurneroService implements OnModuleInit {
             estado: dto.estado ?? existing.estado,
           }),
         );
-        await manager.save(
-          manager.create(TurneroProfesor, {
-            dniProfe: dto.dniProfesor,
-            dia: dto.dia,
-            horario: dto.horario,
-            idSede: dto.idSede,
-          }),
-        );
+        if (dto.dniProfesor) {
+          await manager.save(
+            manager.create(TurneroProfesor, {
+              dniProfe: dto.dniProfesor,
+              dia: dto.dia,
+              horario: dto.horario,
+              idSede: dto.idSede,
+            }),
+          );
+        }
       } else {
         await manager.update(
           Turnero,
@@ -295,14 +331,16 @@ export class TurneroService implements OnModuleInit {
           },
         );
         await manager.delete(TurneroProfesor, { dia: dto.dia, horario: dto.horario, idSede: dto.idSede });
-        await manager.save(
-          manager.create(TurneroProfesor, {
-            dniProfe: dto.dniProfesor,
-            dia: dto.dia,
-            horario: dto.horario,
-            idSede: dto.idSede,
-          }),
-        );
+        if (dto.dniProfesor) {
+          await manager.save(
+            manager.create(TurneroProfesor, {
+              dniProfe: dto.dniProfesor,
+              dia: dto.dia,
+              horario: dto.horario,
+              idSede: dto.idSede,
+            }),
+          );
+        }
       }
     });
   }
@@ -339,5 +377,113 @@ export class TurneroService implements OnModuleInit {
       }
       this.logger.log(`Turnos vencidos eliminados: ${expired.length}`);
     });
+  }
+
+  async findDisponibles(idSede: number, dia: string): Promise<{ horario: string; horaFin: string | null; cantReservas: string | null; reservas: string; profesorNombre: string | null; profesorApellido: string | null }[]> {
+    return this.turneroRepository
+      .createQueryBuilder('t')
+      .leftJoin(TurnoSocio, 'ts', 'ts."idSede" = t."idSede" AND ts.dia = t.dia AND ts.horario = t.horario')
+      .leftJoin(
+        TurneroProfesor,
+        'tp',
+        'tp.dia = t.dia AND tp.horario = t.horario AND tp."idSede" = t."idSede"',
+      )
+      .leftJoin(Profesor, 'p', 'p."DNI" = tp."DNIProfe"')
+      .select('t.horario', 'horario')
+      .addSelect('t."horaFin"', 'horaFin')
+      .addSelect('t."cantReservas"', 'cantReservas')
+      .addSelect('COUNT(DISTINCT ts."DNISocio")', 'reservas')
+      .addSelect('p.nombre', 'profesorNombre')
+      .addSelect('p.apellido', 'profesorApellido')
+      .where('t."idSede" = :idSede', { idSede })
+      .andWhere('t.dia = :dia', { dia })
+      .andWhere('t.estado = true')
+      .andWhere('(t.dia > :fecha OR (t.dia = :fecha AND t.horario >= :hora))', nowEnGym())
+      .groupBy('t.horario')
+      .addGroupBy('t."horaFin"')
+      .addGroupBy('t."cantReservas"')
+      .addGroupBy('p.nombre')
+      .addGroupBy('p.apellido')
+      .orderBy('t.horario', 'ASC')
+      .getRawMany();
+  }
+
+  async findReservasBySocio(dni: string): Promise<{ dia: string; horario: string; idSede: number; nombreSede: string; profesorNombre: string | null; profesorApellido: string | null }[]> {
+    return this.turnoSocioRepository
+      .createQueryBuilder('ts')
+      .innerJoin(Sede, 's', 's."idSede" = ts."idSede"')
+      .leftJoin(
+        TurneroProfesor,
+        'tp',
+        'tp.dia = ts.dia AND tp.horario = ts.horario AND tp."idSede" = ts."idSede"',
+      )
+      .leftJoin(Profesor, 'p', 'p."DNI" = tp."DNIProfe"')
+      .select('ts.dia', 'dia')
+      .addSelect('ts.horario', 'horario')
+      .addSelect('ts."idSede"', 'idSede')
+      .addSelect('s."nombreSede"', 'nombreSede')
+      .addSelect('p.nombre', 'profesorNombre')
+      .addSelect('p.apellido', 'profesorApellido')
+      .where('ts."DNISocio" = :dni', { dni })
+      .andWhere('(ts.dia > :fecha OR (ts.dia = :fecha AND ts.horario >= :hora))', nowEnGym())
+      .orderBy('ts.dia', 'ASC')
+      .addOrderBy('ts.horario', 'ASC')
+      .getRawMany();
+  }
+
+  async crearReserva(dni: string, idSede: number, dia: string, horario: string): Promise<void> {
+    await this.turnoSocioRepository.save(
+      this.turnoSocioRepository.create({ dniSocio: dni, idSede, dia, horario }),
+    );
+  }
+
+  /** Cancela una reserva de socio. No se permite cancelar a menos de 30 minutos del inicio del turno. */
+  async cancelarReserva(dni: string, idSede: number, dia: string, horario: string): Promise<void> {
+    const reserva = await this.turnoSocioRepository.findOne({ where: { dniSocio: dni, idSede, dia, horario } });
+    if (!reserva) throw new NotFoundException('Reserva no encontrada');
+
+    const inicioTurno = new Date(`${dia}T${horario}${GYM_UTC_OFFSET}`);
+    const minutosParaElTurno = (inicioTurno.getTime() - Date.now()) / 60000;
+    if (minutosParaElTurno < 30) {
+      throw new ConflictException('Solo se puede cancelar con al menos 30 minutos de anticipación');
+    }
+
+    await this.turnoSocioRepository.delete({ dniSocio: dni, idSede, dia, horario });
+  }
+
+  /** Socios con una reserva cuyo horario ya empezó y todavía no terminó (para el panel de control de acceso). */
+  async findEnCurso(): Promise<{
+    dni: string;
+    nombre: string;
+    apellido: string;
+    idSede: number;
+    nombreSede: string;
+    horario: string;
+    horaFin: string | null;
+  }[]> {
+    const { fecha, hora } = nowEnGym();
+    return this.turnoSocioRepository.manager.query(
+      `SELECT ts."DNISocio" AS dni, s.nombre, s.apellido, ts."idSede" AS "idSede",
+              sede."nombreSede" AS "nombreSede", ts.horario, t."horaFin" AS "horaFin"
+       FROM "Turno-Socio" ts
+       JOIN "Turnero" t ON t.dia = ts.dia AND t.horario = ts.horario AND t."idSede" = ts."idSede"
+       JOIN "Socios" s ON s."DNI"::text = ts."DNISocio"::text
+       JOIN "Sedes" sede ON sede."idSede" = ts."idSede"
+       WHERE ts.dia = $1 AND ts.horario <= $2 AND (t."horaFin" IS NULL OR t."horaFin" > $2)
+       ORDER BY ts.horario ASC`,
+      [fecha, hora],
+    );
+  }
+
+  /** Socios que reservaron un turno puntual (para el detalle del turno en el admin). */
+  async findAsistentes(dia: string, horario: string, idSede: number): Promise<{ dni: string; nombre: string; apellido: string; telefono: string | null }[]> {
+    return this.turnoSocioRepository.manager.query(
+      `SELECT s."DNI" AS dni, s.nombre, s.apellido, s.telefono
+       FROM "Turno-Socio" ts
+       JOIN "Socios" s ON s."DNI"::text = ts."DNISocio"::text
+       WHERE ts.dia = $1 AND ts.horario = $2 AND ts."idSede" = $3
+       ORDER BY s.apellido ASC, s.nombre ASC`,
+      [dia, horario, idSede],
+    );
   }
 }
