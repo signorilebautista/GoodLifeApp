@@ -1,7 +1,7 @@
 import React, { useId, useState } from 'react';
 import { Eye, EyeOff, Sun, Moon, Lock } from 'lucide-react';
 import AppShell from '../components/AppShell';
-import { useSettings, type FontSize, type FontWeight } from '../context/SettingsContext';
+import { useSettings, type FontSize } from '../context/SettingsContext';
 
 interface ConfiguracionesProps {
     onLogout: () => void;
@@ -68,21 +68,6 @@ const PillGroup: React.FC<{
     </div>
 );
 
-const ToggleSwitch: React.FC<{ checked: boolean; onChange: (v: boolean) => void; label: string }> = ({ checked, onChange, label }) => (
-    <button
-        role="switch"
-        aria-checked={checked}
-        aria-label={label}
-        onClick={() => onChange(!checked)}
-        className={`w-12 h-[26px] rounded-full relative shrink-0 transition-colors duration-200 ${checked ? 'bg-primary-500' : 'bg-gray-300'}`}
-    >
-        <span
-            className="absolute top-[3px] h-5 w-5 rounded-full bg-white shadow-sm transition-all duration-200"
-            style={{ left: checked ? '25px' : '3px' }}
-        />
-    </button>
-);
-
 const Section: React.FC<{ title: string; children: React.ReactNode; delay?: number }> = ({ title, children, delay = 0 }) => (
     <div className="bg-white rounded-2xl shadow-card p-6 mb-5 animate-fadeIn" style={{ animationDelay: `${delay}ms` }}>
         <h3 className="text-base font-semibold text-gray-900 mb-4 pb-2.5 border-b border-gray-100">{title}</h3>
@@ -91,7 +76,7 @@ const Section: React.FC<{ title: string; children: React.ReactNode; delay?: numb
 );
 
 const Configuraciones: React.FC<ConfiguracionesProps> = ({ onLogout, onNavigate, currentUser }) => {
-    const { theme, fontSize, fontWeight, highContrast, setTheme, setFontSize, setFontWeight, setHighContrast, changePassword } = useSettings();
+    const { theme, fontSize, setTheme, setFontSize, changePassword } = useSettings();
 
     const [oldPass, setOldPass] = useState('');
     const [newPass, setNewPass] = useState('');

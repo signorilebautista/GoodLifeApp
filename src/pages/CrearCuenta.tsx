@@ -515,13 +515,13 @@ const CrearCuenta: React.FC<CrearCuentaProps> = ({ onLogout, onNavigate }) => {
                                                     }}
                                                 >
                                                     <div className="w-[34px] h-[34px] rounded-full flex items-center justify-center" style={{ backgroundColor: cfg.color + '20', color: cfg.color }}>
-                                                        {React.cloneElement(cfg.icon as React.ReactElement, { size: 16 })}
+                                                        {React.cloneElement(cfg.icon as React.ReactElement<{ size?: number }>, { size: 16 })}
                                                     </div>
                                                     <p className="text-[13px] font-semibold text-gray-900 m-0 break-words">
                                                         {modifyEntity === 'socio' ? `${item['nombre'] as string} ${(item['apellido'] as string) ?? ''}` : String(item[cfg.nameField] ?? '—')}
                                                     </p>
                                                     {modifyEntity === 'socio' && <p className="text-[11px] text-gray-500 m-0">DNI: {item['dni'] as string}</p>}
-                                                    {modifyEntity === 'ejercicio' && item['zona'] && <p className="text-[11px] text-gray-500 m-0">{(item['zona'] as { nombre: string }).nombre}</p>}
+                                                    {modifyEntity === 'ejercicio' && !!item['zona'] && <p className="text-[11px] text-gray-500 m-0">{(item['zona'] as { nombre: string }).nombre}</p>}
                                                     <button
                                                         onClick={() => openEdit(item)}
                                                         className="mt-auto py-1.5 rounded-md text-xs font-semibold flex items-center justify-center gap-1 transition-colors duration-150"
@@ -552,14 +552,14 @@ const CrearCuenta: React.FC<CrearCuentaProps> = ({ onLogout, onNavigate }) => {
                                                     }}
                                                 >
                                                     <div className="w-[34px] h-[34px] rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: cfg.color + '20', color: cfg.color }}>
-                                                        {React.cloneElement(cfg.icon as React.ReactElement, { size: 16 })}
+                                                        {React.cloneElement(cfg.icon as React.ReactElement<{ size?: number }>, { size: 16 })}
                                                     </div>
                                                     <div className="flex-1 min-w-0">
                                                         <p className="text-sm font-semibold text-gray-900 m-0">
                                                             {modifyEntity === 'socio' ? `${item['nombre'] as string} ${(item['apellido'] as string) ?? ''}` : String(item[cfg.nameField] ?? '—')}
                                                         </p>
                                                         {modifyEntity === 'socio' && <p className="text-xs text-gray-500 mt-0.5">DNI: {item['dni'] as string} · {(item['plan'] as string) ?? 'Sin plan'}</p>}
-                                                        {modifyEntity === 'ejercicio' && item['zona'] && <p className="text-xs text-gray-500 mt-0.5">{(item['zona'] as { nombre: string }).nombre}</p>}
+                                                        {modifyEntity === 'ejercicio' && !!item['zona'] && <p className="text-xs text-gray-500 mt-0.5">{(item['zona'] as { nombre: string }).nombre}</p>}
                                                     </div>
                                                     <button
                                                         onClick={() => openEdit(item)}
