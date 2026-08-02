@@ -10,7 +10,11 @@
     },
     "socios": {
       "root": "socios-frontend",
-      "framework": "vite"
+      "framework": "vite",
+      "rewrites": [
+        { "source": "/app/(.*)", "destination": "/$1" },
+        { "source": "/app", "destination": "/" }
+      ]
     }
   },
   "rewrites": [
