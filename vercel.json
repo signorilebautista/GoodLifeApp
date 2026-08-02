@@ -12,8 +12,8 @@
       "root": "socios-frontend",
       "framework": "vite",
       "rewrites": [
-        { "source": "/app/(.*)", "destination": "/$1" },
-        { "source": "/app", "destination": "/" }
+        { "source": "/app/(.*\\..+)", "destination": "/$1" },
+        { "source": "/app(/.*)?", "destination": "/index.html" }
       ]
     }
   },

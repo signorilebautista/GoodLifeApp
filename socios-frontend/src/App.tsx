@@ -12,7 +12,7 @@ import EntrenamientoPage from './pages/EntrenamientoPage'
 
 function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter basename="/app">
       <Routes>
         <Route path="/" element={<LoginPage />} />
         <Route path="/menu" element={<MenuPrincipal />} />
