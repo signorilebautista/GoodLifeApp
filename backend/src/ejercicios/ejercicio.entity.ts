@@ -16,6 +16,6 @@ export class Ejercicio {
   @JoinColumn({ name: 'idZona' })
   zona: ZonaMuscular | null;
 
-  @Column({ name: 'videoUrl', nullable: true })
+  @Column({ name: 'videoUrl', type: 'varchar', nullable: true })
   videoUrl: string | null;
 }
