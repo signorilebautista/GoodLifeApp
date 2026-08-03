@@ -15,6 +15,12 @@ import { AuthService } from '../auth/auth.service';
 const GYM_TIMEZONE = 'America/Argentina/Buenos_Aires';
 const GYM_UTC_OFFSET = '-03:00';
 
+/** Franja horaria del gimnasio: turnos en punto de 8 a 22hs (coincide con SCHEDULE_HOURS del panel admin). */
+const HORA_APERTURA = 8;
+const HORA_CIERRE = 22;
+const DEFAULT_CUPO = '15';
+const hourStr = (h: number) => `${String(h).padStart(2, '0')}:00:00`;
+
 function nowEnGym(): { fecha: string; hora: string } {
   const parts = new Intl.DateTimeFormat('en-CA', {
     timeZone: GYM_TIMEZONE,
@@ -380,7 +386,7 @@ export class TurneroService implements OnModuleInit {
   }
 
   async findDisponibles(idSede: number, dia: string): Promise<{ horario: string; horaFin: string | null; cantReservas: string | null; reservas: string; profesorNombre: string | null; profesorApellido: string | null }[]> {
-    return this.turneroRepository
+    const existentes = await this.turneroRepository
       .createQueryBuilder('t')
       .leftJoin(TurnoSocio, 'ts', 'ts."idSede" = t."idSede" AND ts.dia = t.dia AND ts.horario = t.horario')
       .leftJoin(
@@ -398,14 +404,38 @@ export class TurneroService implements OnModuleInit {
       .where('t."idSede" = :idSede', { idSede })
       .andWhere('t.dia = :dia', { dia })
       .andWhere('t.estado = true')
-      .andWhere('(t.dia > :fecha OR (t.dia = :fecha AND t.horario >= :hora))', nowEnGym())
       .groupBy('t.horario')
       .addGroupBy('t."horaFin"')
       .addGroupBy('t."cantReservas"')
       .addGroupBy('p.nombre')
       .addGroupBy('p.apellido')
-      .orderBy('t.horario', 'ASC')
       .getRawMany();
+
+    const porHorario = new Map(existentes.map((t) => [t.horario.slice(0, 5), t]));
+
+    const { fecha, hora } = nowEnGym();
+    const turnos: typeof existentes = [];
+    for (let h = HORA_APERTURA; h < HORA_CIERRE; h++) {
+      const horario = hourStr(h);
+      // Si es el día de hoy, no mostrar horas ya pasadas.
+      if (dia === fecha && horario < hora) continue;
+
+      const existente = porHorario.get(horario.slice(0, 5));
+      if (existente) {
+        turnos.push(existente);
+      } else {
+        turnos.push({
+          horario,
+          horaFin: hourStr(h + 1),
+          cantReservas: DEFAULT_CUPO,
+          reservas: '0',
+          profesorNombre: null,
+          profesorApellido: null,
+        });
+      }
+    }
+
+    return turnos.sort((a, b) => a.horario.localeCompare(b.horario));
   }
 
   async findReservasBySocio(dni: string): Promise<{ dia: string; horario: string; idSede: number; nombreSede: string; profesorNombre: string | null; profesorApellido: string | null }[]> {
@@ -432,6 +462,21 @@ export class TurneroService implements OnModuleInit {
   }
 
   async crearReserva(dni: string, idSede: number, dia: string, horario: string): Promise<void> {
+    const turno = await this.turneroRepository.findOne({ where: { idSede, dia, horario } });
+    if (!turno) {
+      const hora = Number(horario.slice(0, 2));
+      await this.turneroRepository.save(
+        this.turneroRepository.create({
+          idSede,
+          dia,
+          horario,
+          horaFin: hourStr(hora + 1),
+          cantReservas: DEFAULT_CUPO,
+          estado: true,
+        }),
+      );
+    }
+
     await this.turnoSocioRepository.save(
       this.turnoSocioRepository.create({ dniSocio: dni, idSede, dia, horario }),
     );
