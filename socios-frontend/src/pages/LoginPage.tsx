@@ -4,11 +4,13 @@ import logoGoodLife from '../assets/logo-goodlife.png'
 import backgroundGym from '../assets/background-gym.jpg'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'
+const DNI_STORAGE_KEY = 'recordarDni'
 
 export default function LoginPage() {
-    const [dni, setDni] = useState('')
+    const [dni, setDni] = useState(() => localStorage.getItem(DNI_STORAGE_KEY) || '')
     const [error, setError] = useState('')
     const [isSubmitting, setIsSubmitting] = useState(false)
+    const [recordar, setRecordar] = useState(() => !!localStorage.getItem(DNI_STORAGE_KEY))
     const navigate = useNavigate()
 
     const handleDniChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -53,16 +55,16 @@ export default function LoginPage() {
             }
 
             localStorage.setItem('socio', JSON.stringify(data))
+            if (recordar) {
+                localStorage.setItem(DNI_STORAGE_KEY, dni)
+            } else {
+                localStorage.removeItem(DNI_STORAGE_KEY)
+            }
             navigate('/menu')
         } catch {
             setError('No se pudo conectar con el servidor')
             setIsSubmitting(false)
         }
-    }
-
-    const handleForgotPassword = () => {
-        console.log('Forgot password clicked')
-        // TODO: Navigate to forgot password page
     }
 
     return (
@@ -139,6 +141,22 @@ export default function LoginPage() {
                             )}
                         </div>
 
+                        {/* Recordarme */}
+                        <div className="flex items-center justify-center gap-2">
+                            <input
+                                id="recordar"
+                                name="recordar"
+                                type="checkbox"
+                                checked={recordar}
+                                onChange={(e) => setRecordar(e.target.checked)}
+                                disabled={isSubmitting}
+                                className="w-4 h-4 rounded border-white/25 bg-white/10 text-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-400/70 disabled:opacity-60"
+                            />
+                            <label htmlFor="recordar" className="text-white/70 text-sm font-medium select-none">
+                                Recordarme
+                            </label>
+                        </div>
+
                         {/* Login Button */}
                         <button
                             type="submit"
@@ -154,17 +172,6 @@ export default function LoginPage() {
                                 'Ingresar'
                             )}
                         </button>
-
-                        {/* Forgot Password Link */}
-                        <div className="text-center pt-1">
-                            <button
-                                type="button"
-                                onClick={handleForgotPassword}
-                                className="text-white/60 hover:text-white text-sm font-medium underline underline-offset-2 transition-colors duration-200"
-                            >
-                                ¿Olvidaste tu contraseña?
-                            </button>
-                        </div>
                     </form>
                 </div>
             </div>
