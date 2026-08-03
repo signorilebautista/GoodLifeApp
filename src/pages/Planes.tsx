@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Plus, X, Trash2, ChevronLeft, Save, PlayCircle, ChevronUp } from 'lucide-react';
+import { Plus, X, Trash2, ChevronLeft, Save, PlayCircle, ChevronUp, Search, LayoutGrid, List } from 'lucide-react';
 import AppShell from '../components/AppShell';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
@@ -68,6 +68,8 @@ const Planes: React.FC<PlanesProps> = ({ onLogout, onNavigate }) => {
     const [socios, setSocios] = useState<Socio[]>([]);
     const [loadingSocios, setLoadingSocios] = useState(true);
     const [selectedSocio, setSelectedSocio] = useState<Socio | null>(null);
+    const [search, setSearch] = useState('');
+    const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
     const [ejerciciosDB, setEjerciciosDB] = useState<EjercicioDB[]>([]);
 
     const [days, setDays] = useState<DayPlan[]>([]);
@@ -260,19 +262,59 @@ const Planes: React.FC<PlanesProps> = ({ onLogout, onNavigate }) => {
             : d));
     };
 
+    const sociosFiltrados = socios.filter(s => {
+        const q = search.trim().toLowerCase();
+        if (!q) return true;
+        return (
+            s.dni.toLowerCase().includes(q) ||
+            s.nombre.toLowerCase().includes(q) ||
+            s.apellido.toLowerCase().includes(q)
+        );
+    });
+
     // VIEW: socios list
     if (!selectedSocio) {
         return (
             <AppShell onLogout={onLogout} onNavigate={onNavigate} activePath="/planes">
                 <div className="w-full max-w-5xl">
-                    <h2 className="text-xl font-bold text-gray-900 mb-5 animate-fadeIn">Ejercicios</h2>
+                    <div className="flex items-center gap-3 mb-5 animate-fadeIn flex-wrap">
+                        <h2 className="text-xl font-bold text-gray-900">Ejercicios</h2>
+                        <div className="flex-1 relative min-w-[180px]">
+                            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                            <input
+                                type="text"
+                                placeholder="Buscar por DNI, nombre o apellido..."
+                                value={search}
+                                onChange={e => setSearch(e.target.value)}
+                                className="w-full pl-9 pr-3 py-2 border border-gray-200 bg-gray-50 rounded-lg text-sm outline-none focus:ring-2 focus:ring-primary focus:border-transparent focus:bg-white transition-all duration-150"
+                            />
+                        </div>
+                        <div className="flex gap-1 bg-gray-100 rounded-lg p-1">
+                            <button
+                                onClick={() => setViewMode('grid')}
+                                title="Vista grilla"
+                                className={`p-1.5 rounded-md transition-colors duration-150 ${viewMode === 'grid' ? 'bg-white shadow-sm text-primary-600' : 'text-gray-500 hover:text-gray-700'}`}
+                            >
+                                <LayoutGrid size={16} />
+                            </button>
+                            <button
+                                onClick={() => setViewMode('list')}
+                                title="Vista lista"
+                                className={`p-1.5 rounded-md transition-colors duration-150 ${viewMode === 'list' ? 'bg-white shadow-sm text-primary-600' : 'text-gray-500 hover:text-gray-700'}`}
+                            >
+                                <List size={16} />
+                            </button>
+                        </div>
+                    </div>
                     {loadingSocios ? (
                         <p className="text-gray-500">Cargando socios...</p>
                     ) : socios.length === 0 ? (
                         <p className="text-gray-500">Sin socios registrados.</p>
-                    ) : (
+                    ) : sociosFiltrados.length === 0 ? (
+                        <p className="text-gray-500">Sin resultados para "{search}".</p>
+                    ) : viewMode === 'grid' ? (
                         <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))' }}>
-                            {socios.map((s, index) => (
+                            {sociosFiltrados.map((s, index) => (
                                 <button
                                     key={s.dni}
                                     onClick={() => selectSocio(s)}
@@ -292,6 +334,33 @@ const Planes: React.FC<PlanesProps> = ({ onLogout, onNavigate }) => {
                                                 </span>
                                             )}
                                         </div>
+                                    </div>
+                                </button>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="flex flex-col gap-2">
+                            {sociosFiltrados.map((s, index) => (
+                                <button
+                                    key={s.dni}
+                                    onClick={() => selectSocio(s)}
+                                    className="bg-white rounded-xl shadow-card hover:shadow-card-hover px-4 py-3 flex items-center gap-4 border-2 border-transparent hover:border-primary-300 cursor-pointer text-left w-full transition-all duration-200 animate-fadeIn"
+                                    style={{ animationDelay: `${Math.min(index, 10) * 30}ms` }}
+                                >
+                                    <div className="h-9 w-9 shrink-0 rounded-full bg-gradient-to-br from-emerald-400 to-primary-500 flex items-center justify-center text-white text-sm font-semibold shadow-sm">
+                                        {avatarInitials(s.nombre, s.apellido)}
+                                    </div>
+                                    <div className="min-w-0 flex-1">
+                                        <p className="text-[15px] font-semibold text-gray-900 truncate">{s.nombre} {s.apellido}</p>
+                                        <p className="text-xs text-gray-500 truncate">DNI {s.dni}</p>
+                                    </div>
+                                    <div className="shrink-0 text-right">
+                                        <p className="text-xs text-gray-500">{s.plan ?? 'Sin plan'}</p>
+                                        {s.clasesRestantes != null && (
+                                            <span className="text-[11px] bg-primary-50 text-primary-700 rounded px-1.5 py-0.5 mt-1 inline-block">
+                                                {s.clasesRestantes} clases
+                                            </span>
+                                        )}
                                     </div>
                                 </button>
                             ))}

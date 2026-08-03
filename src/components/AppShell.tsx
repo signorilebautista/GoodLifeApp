@@ -13,10 +13,10 @@ interface AppShellProps {
 const allMenuItems = [
     { icon: Home, label: 'Menú', path: '/menu-principal', adminOnly: false },
     { icon: Users, label: 'Socios', path: '/socios', adminOnly: false },
+    { icon: FileText, label: 'Planes', path: '/planes', adminOnly: false },
     { icon: CreditCard, label: 'Gestión de Pagos y Venc.', path: '/vencimientos', adminOnly: false },
     { icon: Calendar, label: 'Turnero', path: '/turnero', adminOnly: false },
     { icon: LogIn, label: 'Ingreso', path: '/ingreso', adminOnly: false },
-    { icon: FileText, label: 'Planes', path: '/planes', adminOnly: false },
     { icon: BarChart3, label: 'Estadísticas', path: '/estadisticas', adminOnly: false },
     { icon: GraduationCap, label: 'Profesores', path: '/profesores', adminOnly: false },
     { icon: UserPlus, label: 'Agregar', path: '/crear-cuenta', adminOnly: true },
