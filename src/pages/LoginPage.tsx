@@ -11,15 +11,14 @@ const MIN_TRANSITION_MS = 900;
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const REMEMBERED_USER_KEY = 'rememberedUser';
-const REMEMBERED_PASS_KEY = 'rememberedPass';
 
 interface LoginPageProps {
-    onLogin: (username: string, mustChangePassword?: boolean, rememberMe?: boolean, role?: 'admin' | 'profesor') => void;
+    onLogin: (username: string, mustChangePassword?: boolean, role?: 'admin' | 'profesor') => void;
 }
 
 const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
     const [usuario, setUsuario] = useState(() => localStorage.getItem(REMEMBERED_USER_KEY) ?? '');
-    const [password, setPassword] = useState(() => localStorage.getItem(REMEMBERED_PASS_KEY) ?? '');
+    const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [rememberMe, setRememberMe] = useState(() => localStorage.getItem(REMEMBERED_USER_KEY) !== null);
     const [error, setError] = useState('');
@@ -29,10 +28,8 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
     const completeLogin = async (username: string, mustChange?: boolean, role: 'admin' | 'profesor' = 'profesor') => {
         if (rememberMe) {
             localStorage.setItem(REMEMBERED_USER_KEY, username);
-            localStorage.setItem(REMEMBERED_PASS_KEY, password);
         } else {
             localStorage.removeItem(REMEMBERED_USER_KEY);
-            localStorage.removeItem(REMEMBERED_PASS_KEY);
         }
         setTransitioning(true);
         const tasks = [delay(MIN_TRANSITION_MS)];
@@ -40,7 +37,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
             tasks.push(prefetchMenuPrincipal());
         }
         await Promise.all(tasks);
-        onLogin(username, mustChange, rememberMe, role);
+        onLogin(username, mustChange, role);
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -165,7 +162,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
                                 onChange={(e) => setRememberMe(e.target.checked)}
                                 className="h-4 w-4 rounded border-gray-300 text-primary-500 focus:ring-2 focus:ring-primary cursor-pointer accent-[#00A8E8]"
                             />
-                            <span className="text-sm text-gray-600">Recordarme</span>
+                            <span className="text-sm text-gray-600">Recordar usuario</span>
                         </label>
 
                         {error && (

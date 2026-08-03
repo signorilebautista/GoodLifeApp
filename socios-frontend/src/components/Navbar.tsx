@@ -11,8 +11,8 @@ export default function Navbar() {
     }
 
     const handleConfirmLogout = () => {
-        console.log('Logout confirmed')
-        navigate('/')
+        localStorage.removeItem('socio')
+        navigate('/', { replace: true })
     }
 
     const handleCancelLogout = () => {

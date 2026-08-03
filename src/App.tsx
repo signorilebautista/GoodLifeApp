@@ -19,10 +19,14 @@ import { SettingsProvider } from './context/SettingsContext';
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 const MIN_NAV_TRANSITION_MS = 0;
 
-// Sesión: si el usuario marcó "Recordarme" persistimos en localStorage
-// (sobrevive al cierre del navegador); si no, en sessionStorage como antes.
-const readSession = (key: string) => localStorage.getItem(key) ?? sessionStorage.getItem(key);
-const clearSession = (key: string) => { localStorage.removeItem(key); sessionStorage.removeItem(key); };
+// La sesión vive solo en sessionStorage: se cierra sola al cerrar la pestaña/navegador.
+// "Recordarme" en el login únicamente autocompleta el usuario, no mantiene la sesión abierta.
+const SESSION_KEYS = ['isLoggedIn', 'currentUser', 'mustChangePassword', 'userRole'];
+// Migración: purga sesiones viejas que habían quedado persistidas en localStorage.
+SESSION_KEYS.forEach((key) => localStorage.removeItem(key));
+
+const readSession = (key: string) => sessionStorage.getItem(key);
+const clearSession = (key: string) => sessionStorage.removeItem(key);
 
 function AppContent() {
     const [isLoggedIn, setIsLoggedIn] = useState(() => readSession('isLoggedIn') === 'true');
@@ -33,12 +37,11 @@ function AppContent() {
     const navigate = useNavigate();
     const location = useLocation();
 
-    const handleLogin = (username: string, mustChange = false, rememberMe = false, role: 'admin' | 'profesor' = 'profesor') => {
-        const store = rememberMe ? localStorage : sessionStorage;
-        store.setItem('isLoggedIn', 'true');
-        store.setItem('currentUser', username);
-        store.setItem('mustChangePassword', String(mustChange));
-        store.setItem('userRole', role);
+    const handleLogin = (username: string, mustChange = false, role: 'admin' | 'profesor' = 'profesor') => {
+        sessionStorage.setItem('isLoggedIn', 'true');
+        sessionStorage.setItem('currentUser', username);
+        sessionStorage.setItem('mustChangePassword', String(mustChange));
+        sessionStorage.setItem('userRole', role);
         setIsLoggedIn(true);
         setCurrentUser(username);
         setMustChangePassword(mustChange);
@@ -51,8 +54,7 @@ function AppContent() {
     };
 
     const handlePasswordChanged = () => {
-        const store = localStorage.getItem('isLoggedIn') ? localStorage : sessionStorage;
-        store.setItem('mustChangePassword', 'false');
+        sessionStorage.setItem('mustChangePassword', 'false');
         setMustChangePassword(false);
         navigate('/menu-principal', { replace: true });
     };

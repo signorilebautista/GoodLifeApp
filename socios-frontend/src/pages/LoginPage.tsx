@@ -142,20 +142,27 @@ export default function LoginPage() {
                         </div>
 
                         {/* Recordarme */}
-                        <div className="flex items-center justify-center gap-2">
-                            <input
-                                id="recordar"
-                                name="recordar"
-                                type="checkbox"
-                                checked={recordar}
-                                onChange={(e) => setRecordar(e.target.checked)}
-                                disabled={isSubmitting}
-                                className="w-4 h-4 rounded border-white/25 bg-white/10 text-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-400/70 disabled:opacity-60"
-                            />
-                            <label htmlFor="recordar" className="text-white/70 text-sm font-medium select-none">
-                                Recordarme
-                            </label>
-                        </div>
+                        <label
+                            htmlFor="recordar"
+                            className="flex items-center justify-between gap-3 rounded-xl bg-white/5 border border-white/10 px-4 py-3 cursor-pointer select-none transition-colors duration-200 hover:bg-white/10"
+                        >
+                            <span className="text-white/80 text-sm font-medium">
+                                Recordar mi DNI
+                            </span>
+                            <span className="relative inline-flex items-center shrink-0">
+                                <input
+                                    id="recordar"
+                                    name="recordar"
+                                    type="checkbox"
+                                    checked={recordar}
+                                    onChange={(e) => setRecordar(e.target.checked)}
+                                    disabled={isSubmitting}
+                                    className="peer sr-only"
+                                />
+                                <span className="h-6 w-11 rounded-full bg-white/20 border border-white/20 transition-colors duration-300 peer-checked:bg-cyan-500 peer-checked:border-cyan-400 peer-focus-visible:ring-2 peer-focus-visible:ring-cyan-400/70 peer-disabled:opacity-60" />
+                                <span className="absolute left-1 top-1 h-4 w-4 rounded-full bg-white shadow-md transition-transform duration-300 peer-checked:translate-x-5" />
+                            </span>
+                        </label>
 
                         {/* Login Button */}
                         <button
