@@ -26,6 +26,11 @@ export class SociosController {
     return this.sociosService.getVencimientos();
   }
 
+  @Get('ingresos/recientes')
+  getIngresosRecientes() {
+    return this.sociosService.getIngresosRecientes();
+  }
+
   @Post()
   create(@Body() dto: CreateSocioDto) {
     return this.sociosService.create(dto);

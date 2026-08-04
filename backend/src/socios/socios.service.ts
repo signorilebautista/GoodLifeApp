@@ -228,6 +228,20 @@ export class SociosService {
     return { ok: true, nombre, apellido, clasesRestantes: nuevasClases, mensaje: `Ingreso registrado. Le quedan ${nuevasClases} clase${nuevasClases === 1 ? '' : 's'}.` };
   }
 
+  async getIngresosRecientes(): Promise<{ dni: string; nombre: string; apellido: string; fecha: Date }[]> {
+    const desde = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    return this.logIngresoRepository
+      .createQueryBuilder('li')
+      .innerJoin(Socio, 's', 's."DNI" = li."dniSocio"')
+      .select('li."dniSocio"', 'dni')
+      .addSelect('s.nombre', 'nombre')
+      .addSelect('s.apellido', 'apellido')
+      .addSelect('li.fecha', 'fecha')
+      .where('li.fecha >= :desde', { desde })
+      .orderBy('li.fecha', 'DESC')
+      .getRawMany();
+  }
+
   async remove(dni: string): Promise<void> {
     const socio = await this.sociosRepository.findOne({ where: { dni } });
     if (!socio) throw new NotFoundException(`Socio con DNI ${dni} no encontrado`);

@@ -21,6 +21,7 @@ export default function TabataPage() {
     const [currentRound, setCurrentRound] = useState(1)
     const [currentSeries, setCurrentSeries] = useState(1)
     const [isActive, setIsActive] = useState(false)
+    const [phaseFlash, setPhaseFlash] = useState(false)
 
     // Settings State
     const [settings] = useState(loadTabataSettings)
@@ -105,6 +106,15 @@ export default function TabataPage() {
         playPhaseSoundRef.current = playPhaseSound
     })
 
+    // Beep corto para marcar los últimos 3 segundos de cada fase (3, 2, 1).
+    const playTick = () => {
+        if (!audioContextRef.current) return
+        if (audioContextRef.current.state === 'suspended') {
+            audioContextRef.current.resume()
+        }
+        playTone(1000, 'beep', 0.08)
+    }
+
     const startTimer = () => {
         initAudio()
         setPhase('prepare')
@@ -130,7 +140,13 @@ export default function TabataPage() {
 
         timerRef.current = window.setInterval(() => {
             setTimeLeft((prevTime) => {
-                if (prevTime > 1) return prevTime - 1
+                if (prevTime > 1) {
+                    const nextTime = prevTime - 1
+                    if (nextTime <= 3 && phaseRef.current !== 'idle' && phaseRef.current !== 'finished') {
+                        playTick()
+                    }
+                    return nextTime
+                }
 
                 const currentPhase = phaseRef.current
                 let nextPhase: TabataPhase = currentPhase
@@ -170,6 +186,9 @@ export default function TabataPage() {
                 if (nextPhase !== currentPhase) {
                     setPhase(nextPhase)
                     playPhaseSoundRef.current(nextPhase)
+                    setPhaseFlash(true)
+                    setTimeout(() => setPhaseFlash(false), 500)
+                    if (navigator.vibrate) navigator.vibrate(nextPhase === 'work' ? [120] : [60, 60, 60])
                 }
                 if (nextPhase === 'finished') {
                     setIsActive(false)
@@ -253,15 +272,21 @@ export default function TabataPage() {
                 {/* Timer Display */}
                 <div className="flex flex-col items-center justify-center mb-12 animate-fade-in">
                     <div
-                        className={`w-64 h-64 rounded-full border-8 flex items-center justify-center shadow-2xl bg-white/10 backdrop-blur-2xl relative transition-all duration-500 ${getPhaseColor()} ${phase === 'work' ? 'scale-110' : ''}`}
+                        className={`w-64 h-64 rounded-full border-8 flex items-center justify-center shadow-2xl bg-white/10 backdrop-blur-2xl relative transition-all duration-300 ${getPhaseColor()} ${phaseFlash ? 'scale-125 shadow-[0_0_70px_18px_rgba(255,255,255,0.55)]' : phase === 'work' ? 'scale-110' : ''}`}
                         role="timer"
                         aria-live="polite"
                         aria-label={`${getPhaseLabel()}, ${isActive ? timeLeft : 0} segundos restantes`}
                     >
+                        {phaseFlash && (
+                            <>
+                                <span className="absolute inset-0 rounded-full bg-white/40 animate-ping" />
+                                <span className="absolute -inset-3 rounded-full border-4 border-white/70 animate-ping" />
+                            </>
+                        )}
                         <span className="text-6xl font-bold transition-colors duration-300 tabular-nums">
                             {isActive ? timeLeft.toString().padStart(2, '0') : '00:00'}
                         </span>
-                        <span className="absolute bottom-12 text-white/60 font-semibold text-lg uppercase tracking-wider">
+                        <span className={`absolute bottom-12 font-semibold text-lg uppercase tracking-wider transition-all duration-300 ${phaseFlash ? 'text-white scale-110' : 'text-white/60'}`}>
                             {getPhaseLabel()}
                         </span>
                         {isActive && phase !== 'idle' && phase !== 'finished' && (

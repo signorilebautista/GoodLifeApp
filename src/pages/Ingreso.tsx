@@ -3,9 +3,8 @@ import { LogIn, CheckCircle, XCircle, History, Users, RefreshCw } from 'lucide-r
 import AppShell from '../components/AppShell';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-const HISTORIAL_KEY = 'goodlife_ingreso_historial';
-const MAX_HISTORIAL = 10;
 const EN_CURSO_POLL_MS = 60_000;
+const HISTORIAL_POLL_MS = 60_000;
 
 interface SocioEnCurso {
     dni: string;
@@ -36,23 +35,19 @@ interface IngresoResult extends Omit<IngresoHistorialItem, 'timestamp'> {
     timestamp: Date;
 }
 
-function loadHistorial(): IngresoHistorialItem[] {
-    try {
-        return JSON.parse(localStorage.getItem(HISTORIAL_KEY) ?? '[]');
-    } catch {
-        return [];
-    }
-}
-
-function saveHistorial(items: IngresoHistorialItem[]) {
-    localStorage.setItem(HISTORIAL_KEY, JSON.stringify(items.slice(0, MAX_HISTORIAL)));
+interface IngresoReciente {
+    dni: string;
+    nombre: string;
+    apellido: string;
+    fecha: string;
 }
 
 const Ingreso: React.FC<IngresoProps> = ({ onLogout, onNavigate }) => {
     const [dni, setDni] = useState('');
     const [loading, setLoading] = useState(false);
     const [result, setResult] = useState<IngresoResult | null>(null);
-    const [historial, setHistorial] = useState<IngresoHistorialItem[]>(loadHistorial);
+    const [historial, setHistorial] = useState<IngresoReciente[]>([]);
+    const [loadingHistorial, setLoadingHistorial] = useState(true);
     const [enCurso, setEnCurso] = useState<SocioEnCurso[]>([]);
     const [loadingEnCurso, setLoadingEnCurso] = useState(true);
     const [ingresandoDni, setIngresandoDni] = useState<string | null>(null);
@@ -70,11 +65,29 @@ const Ingreso: React.FC<IngresoProps> = ({ onLogout, onNavigate }) => {
         }
     }, []);
 
+    const fetchHistorial = useCallback(async () => {
+        setLoadingHistorial(true);
+        try {
+            const res = await fetch(`${API_URL}/socios/ingresos/recientes`);
+            if (res.ok) setHistorial(await res.json());
+        } catch {
+            // se reintenta en el próximo poll
+        } finally {
+            setLoadingHistorial(false);
+        }
+    }, []);
+
     useEffect(() => {
         fetchEnCurso();
         const interval = setInterval(fetchEnCurso, EN_CURSO_POLL_MS);
         return () => clearInterval(interval);
     }, [fetchEnCurso]);
+
+    useEffect(() => {
+        fetchHistorial();
+        const interval = setInterval(fetchHistorial, HISTORIAL_POLL_MS);
+        return () => clearInterval(interval);
+    }, [fetchHistorial]);
 
     const handleIngreso = async (dniParam?: string) => {
         const dniTrim = (dniParam ?? dni).trim();
@@ -89,10 +102,7 @@ const Ingreso: React.FC<IngresoProps> = ({ onLogout, onNavigate }) => {
             const r: IngresoResult = { ...data, dni: dniTrim, timestamp: new Date() };
             setResult(r);
             if (r.ok) {
-                const item: IngresoHistorialItem = { ...r, timestamp: r.timestamp.toISOString() };
-                const updated = [item, ...loadHistorial()].slice(0, MAX_HISTORIAL);
-                saveHistorial(updated);
-                setHistorial(updated);
+                fetchHistorial();
             }
         } catch (err: unknown) {
             setResult({ ok: false, dni: dniTrim, nombre: '', apellido: '', clasesRestantes: 0, mensaje: err instanceof Error ? err.message : 'Error desconocido.', timestamp: new Date() });
@@ -110,6 +120,13 @@ const Ingreso: React.FC<IngresoProps> = ({ onLogout, onNavigate }) => {
 
     const formatTime = (d: Date) =>
         d.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+    const formatFecha = (d: Date) => {
+        const hoy = new Date();
+        const esHoy = d.toDateString() === hoy.toDateString();
+        const hora = d.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+        return esHoy ? hora : `${d.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' })} · ${hora}`;
+    };
 
     const formatHorario = (h: string) => h.slice(0, 5);
 
@@ -236,30 +253,45 @@ const Ingreso: React.FC<IngresoProps> = ({ onLogout, onNavigate }) => {
                     </div>
                 )}
 
-                {/* Historial de ingresos */}
-                {historial.length > 0 && (
-                    <div className="bg-white rounded-2xl shadow-card px-6 py-5 w-full animate-fadeIn">
-                        <p className="text-xs text-gray-500 font-semibold uppercase tracking-wide mb-3 flex items-center gap-1.5">
-                            <History size={13} /> Últimos ingresos
+                {/* Historial de ingresos (últimas 24hs) */}
+                <div className="bg-white rounded-2xl shadow-card px-6 py-5 w-full animate-fadeIn">
+                    <div className="flex items-center justify-between mb-3">
+                        <p className="text-xs text-gray-500 font-semibold uppercase tracking-wide flex items-center gap-1.5">
+                            <History size={13} /> Ingresos de las últimas 24hs
                         </p>
+                        <button
+                            onClick={fetchHistorial}
+                            disabled={loadingHistorial}
+                            title="Actualizar"
+                            className="text-gray-400 hover:text-primary-600 transition-colors duration-150 disabled:opacity-50"
+                        >
+                            <RefreshCw size={14} className={loadingHistorial ? 'animate-spin' : ''} />
+                        </button>
+                    </div>
+
+                    {loadingHistorial && historial.length === 0 ? (
+                        <p className="text-sm text-gray-400">Cargando...</p>
+                    ) : historial.length === 0 ? (
+                        <p className="text-sm text-gray-400">No hay ingresos registrados en las últimas 24hs.</p>
+                    ) : (
                         <div className="flex flex-col gap-2.5">
                             {historial.map((item, i) => (
-                                <div key={i} className="flex items-center gap-3">
+                                <div key={`${item.dni}-${item.fecha}`} className="flex items-center gap-3">
                                     <div className="h-9 w-9 shrink-0 rounded-full bg-gradient-to-br from-emerald-400 to-primary-500 flex items-center justify-center text-white text-xs font-semibold shadow-sm">
                                         {`${item.nombre[0] ?? ''}${item.apellido[0] ?? ''}`.toUpperCase()}
                                     </div>
                                     <div className="flex-1 min-w-0">
                                         <p className="text-[14px] font-semibold text-gray-900 truncate">{item.nombre} {item.apellido}</p>
                                         <p className="text-xs text-gray-500 mt-0.5">
-                                            {item.clasesRestantes} clase{item.clasesRestantes !== 1 ? 's' : ''} restante{item.clasesRestantes !== 1 ? 's' : ''} · {formatTime(new Date(item.timestamp))}
+                                            {formatFecha(new Date(item.fecha))}
                                         </p>
                                     </div>
-                                    {i === 0 && <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 rounded-full px-2 py-0.5 shrink-0">Ahora</span>}
+                                    {i === 0 && <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 rounded-full px-2 py-0.5 shrink-0">Reciente</span>}
                                 </div>
                             ))}
                         </div>
-                    </div>
-                )}
+                    )}
+                </div>
             </div>
         </AppShell>
     );
