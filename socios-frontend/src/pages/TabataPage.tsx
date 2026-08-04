@@ -67,7 +67,7 @@ export default function TabataPage() {
 
         osc.frequency.setValueAtTime(freq, audioContextRef.current.currentTime)
 
-        gain.gain.setValueAtTime(0.1, audioContextRef.current.currentTime)
+        gain.gain.setValueAtTime(0.9, audioContextRef.current.currentTime)
         gain.gain.exponentialRampToValueAtTime(0.00001, audioContextRef.current.currentTime + duration)
 
         osc.start()

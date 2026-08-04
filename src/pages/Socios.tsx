@@ -21,6 +21,7 @@ interface Member {
     plan: string | null;
     deuda: string | null;
     idProfesor: string | null;
+    fotoUrl: string | null;
 }
 
 interface Membresia {
@@ -300,6 +301,15 @@ const Socios: React.FC<SociosProps> = ({ onLogout, onNavigate }) => {
     const avatarInitials = (nombre: string, apellido: string) =>
         `${nombre[0] ?? ''}${apellido[0] ?? ''}`.toUpperCase();
 
+    const Avatar = ({ member, className }: { member: Member; className: string }) =>
+        member.fotoUrl ? (
+            <img src={member.fotoUrl} alt="" className={`${className} object-cover shrink-0`} />
+        ) : (
+            <div className={`${className} shrink-0 bg-gradient-to-br from-emerald-400 to-primary-500 flex items-center justify-center text-white font-semibold shadow-sm`}>
+                {avatarInitials(member.nombre, member.apellido)}
+            </div>
+        );
+
     return (
         <>
             <AppShell onLogout={onLogout} onNavigate={onNavigate} activePath="/socios">
@@ -360,9 +370,7 @@ const Socios: React.FC<SociosProps> = ({ onLogout, onNavigate }) => {
                                 style={{ animationDelay: `${Math.min(index, 10) * 40}ms` }}
                             >
                                 <div className="flex items-center gap-3">
-                                    <div className="h-10 w-10 shrink-0 rounded-full bg-gradient-to-br from-emerald-400 to-primary-500 flex items-center justify-center text-white text-sm font-semibold shadow-sm">
-                                        {avatarInitials(member.nombre, member.apellido)}
-                                    </div>
+                                    <Avatar member={member} className="h-10 w-10 rounded-full text-sm" />
                                     <h3 className="text-base font-semibold text-gray-900 truncate">
                                         {member.nombre} {member.apellido}
                                     </h3>
@@ -383,9 +391,7 @@ const Socios: React.FC<SociosProps> = ({ onLogout, onNavigate }) => {
                                 className="bg-white rounded-xl shadow-card hover:shadow-card-hover px-5 py-3.5 flex items-center gap-4 cursor-pointer transition-all duration-200 hover:-translate-y-0.5 animate-fadeIn"
                                 style={{ animationDelay: `${Math.min(index, 10) * 30}ms` }}
                             >
-                                <div className="h-9 w-9 shrink-0 rounded-full bg-gradient-to-br from-emerald-400 to-primary-500 flex items-center justify-center text-white text-sm font-semibold shadow-sm">
-                                    {avatarInitials(member.nombre, member.apellido)}
-                                </div>
+                                <Avatar member={member} className="h-9 w-9 rounded-full text-sm" />
                                 <div className="flex-1 min-w-0">
                                     <p className="text-[15px] font-semibold text-gray-900 truncate">{member.nombre} {member.apellido}</p>
                                     <p className="text-xs text-gray-500 truncate">{member.plan ?? 'Sin plan'}</p>
@@ -494,9 +500,7 @@ const Socios: React.FC<SociosProps> = ({ onLogout, onNavigate }) => {
                         </div>
 
                         <div className="flex items-center gap-3 mb-6">
-                            <div className="h-11 w-11 shrink-0 rounded-full bg-gradient-to-br from-emerald-400 to-primary-500 flex items-center justify-center text-white text-lg font-semibold shadow-sm">
-                                {avatarInitials(selectedMember.nombre, selectedMember.apellido)}
-                            </div>
+                            <Avatar member={selectedMember} className="h-11 w-11 rounded-full text-lg" />
                             <div>
                                 <p className="text-[15px] font-semibold text-gray-900">
                                     {selectedMember.plan ?? 'Sin plan'}

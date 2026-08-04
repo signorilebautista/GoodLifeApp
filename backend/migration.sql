@@ -46,3 +46,7 @@ DROP TABLE IF EXISTS "ZonasMusculares";
 -- Actividades: columna idActividad eliminada de Turnero
 ALTER TABLE "Turnero" DROP COLUMN IF EXISTS "idActividad";
 DROP TABLE IF EXISTS "Actividades";
+
+-- 5. Foto de perfil del socio (data URL en base64, subida desde la PWA)
+ALTER TABLE "Socios"
+  ADD COLUMN IF NOT EXISTS "fotoUrl" TEXT;

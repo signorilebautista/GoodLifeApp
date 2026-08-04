@@ -6,9 +6,13 @@ import express from 'express';
 import { AppModule } from './app.module';
 
 const expressServer = express();
+// Límite más alto que el default (100kb) para admitir la foto de perfil del
+// socio, que se sube como data URL en base64 dentro del body JSON.
+expressServer.use(express.json({ limit: '5mb' }));
+expressServer.use(express.urlencoded({ extended: true, limit: '5mb' }));
 
 async function createApp() {
-  const app = await NestFactory.create(AppModule, new ExpressAdapter(expressServer));
+  const app = await NestFactory.create(AppModule, new ExpressAdapter(expressServer), { bodyParser: false });
   app.enableCors();
   app.setGlobalPrefix('api');
   app.useGlobalPipes(

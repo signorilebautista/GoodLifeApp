@@ -25,6 +25,7 @@ export interface SocioConDetalle {
   idProfesor: string | null;
   fechaUltimoPago: string | null;
   proximoPago: string | null;
+  fotoUrl: string | null;
 }
 
 export interface SocioVencimiento {
@@ -85,6 +86,7 @@ export class SociosService {
       .addSelect('s."idProfesor"', 'idProfesor')
       .addSelect('s."fechaUltimoPago"', 'fechaUltimoPago')
       .addSelect('s."proximoPago"', 'proximoPago')
+      .addSelect('s."fotoUrl"', 'fotoUrl')
       .where('s."estado" = :estado', { estado: 'A' })
       .orderBy('s."DNI"', 'ASC')
       .getRawMany();
@@ -226,6 +228,12 @@ export class SociosService {
     await this.sociosRepository.update({ dni }, { clasesRestantes: String(nuevasClases) });
     await this.logIngresoRepository.save(this.logIngresoRepository.create({ dniSocio: dni }));
     return { ok: true, nombre, apellido, clasesRestantes: nuevasClases, mensaje: `Ingreso registrado. Le quedan ${nuevasClases} clase${nuevasClases === 1 ? '' : 's'}.` };
+  }
+
+  async updateFoto(dni: string, fotoUrl: string | null): Promise<void> {
+    const socio = await this.sociosRepository.findOne({ where: { dni } });
+    if (!socio) throw new NotFoundException(`Socio con DNI ${dni} no encontrado`);
+    await this.sociosRepository.update({ dni }, { fotoUrl });
   }
 
   async getIngresosRecientes(): Promise<{ dni: string; nombre: string; apellido: string; fecha: Date }[]> {
@@ -402,6 +410,7 @@ export class SociosService {
       .addSelect('s."idProfesor"', 'idProfesor')
       .addSelect('s."fechaUltimoPago"', 'fechaUltimoPago')
       .addSelect('s."proximoPago"', 'proximoPago')
+      .addSelect('s."fotoUrl"', 'fotoUrl')
       .addSelect('ps.plan', 'plan')
       .where('s."DNI"::text = :dni', { dni })
       .getRawOne();

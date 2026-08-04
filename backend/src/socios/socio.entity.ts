@@ -40,4 +40,7 @@ export class Socio {
 
   @Column({ name: 'proximoPago', type: 'date', nullable: true })
   proximoPago: string | null;
+
+  @Column({ name: 'fotoUrl', type: 'text', nullable: true })
+  fotoUrl: string | null;
 }

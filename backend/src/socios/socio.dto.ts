@@ -1,4 +1,4 @@
-import { IsInt, IsNumberString, IsOptional, IsString } from 'class-validator';
+import { IsInt, IsNumberString, IsOptional, IsString, ValidateIf } from 'class-validator';
 
 export class LoginSocioDto {
   @IsNumberString()
@@ -21,6 +21,12 @@ export class UpdateSocioDto {
   @IsOptional() @IsNumberString() clasesRestantes?: string;
   @IsOptional() @IsNumberString({ no_symbols: false }) deuda?: string;
   @IsOptional() @IsString() idProfesor?: string;
+}
+
+export class UpdateFotoDto {
+  @ValidateIf((o) => o.fotoUrl !== null)
+  @IsString()
+  fotoUrl: string | null;
 }
 
 export class CreateSocioDto {
