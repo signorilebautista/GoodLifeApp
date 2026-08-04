@@ -7,6 +7,7 @@ import { TurneroModule } from './turnero/turnero.module';
 import { StatsModule } from './stats/stats.module';
 import { AuthModule } from './auth/auth.module';
 import { EjerciciosModule } from './ejercicios/ejercicios.module';
+import { RutinaModule } from './rutina/rutina.module';
 
 @Module({
   imports: [
@@ -43,6 +44,7 @@ import { EjerciciosModule } from './ejercicios/ejercicios.module';
     StatsModule,
     AuthModule,
     EjerciciosModule,
+    RutinaModule,
   ],
 })
 export class AppModule {}
