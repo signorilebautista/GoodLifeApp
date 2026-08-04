@@ -1,6 +1,6 @@
 import { Body, Controller, Delete, Get, HttpException, Param, Patch, Post, Put } from '@nestjs/common';
 import { SociosService } from './socios.service';
-import { CreateMembresiaDto, CreateSocioDto, LoginSocioDto, UpdateFotoDto, UpdateSocioDto } from './socio.dto';
+import { CreateMembresiaDto, CreateSocioDto, LoginSocioDto, RegistrarIngresoDto, UpdateFotoDto, UpdateSocioDto } from './socio.dto';
 
 @Controller('socios')
 export class SociosController {
@@ -76,8 +76,8 @@ export class SociosController {
   }
 
   @Patch(':dni/ingreso')
-  registrarIngreso(@Param('dni') dni: string) {
-    return this.sociosService.registrarIngreso(dni);
+  registrarIngreso(@Param('dni') dni: string, @Body() dto: RegistrarIngresoDto) {
+    return this.sociosService.registrarIngreso(dni, dto.idSede);
   }
 
   @Patch(':dni/foto')

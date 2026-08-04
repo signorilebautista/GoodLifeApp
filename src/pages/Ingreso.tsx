@@ -40,6 +40,12 @@ interface IngresoReciente {
     nombre: string;
     apellido: string;
     fecha: string;
+    nombreSede: string | null;
+}
+
+interface Sede {
+    idSede: number;
+    nombreSede: string;
 }
 
 const Ingreso: React.FC<IngresoProps> = ({ onLogout, onNavigate }) => {
@@ -51,6 +57,10 @@ const Ingreso: React.FC<IngresoProps> = ({ onLogout, onNavigate }) => {
     const [enCurso, setEnCurso] = useState<SocioEnCurso[]>([]);
     const [loadingEnCurso, setLoadingEnCurso] = useState(true);
     const [ingresandoDni, setIngresandoDni] = useState<string | null>(null);
+    const [sedes, setSedes] = useState<Sede[]>([]);
+    const [showSedeModal, setShowSedeModal] = useState(false);
+    const [sedeSeleccionada, setSedeSeleccionada] = useState('');
+    const [dniPendiente, setDniPendiente] = useState('');
     const inputRef = useRef<HTMLInputElement>(null);
 
     const fetchEnCurso = useCallback(async () => {
@@ -78,6 +88,13 @@ const Ingreso: React.FC<IngresoProps> = ({ onLogout, onNavigate }) => {
     }, []);
 
     useEffect(() => {
+        fetch(`${API_URL}/turnero/sedes`)
+            .then(res => res.ok ? res.json() : [])
+            .then(setSedes)
+            .catch(() => setSedes([]));
+    }, []);
+
+    useEffect(() => {
         fetchEnCurso();
         const interval = setInterval(fetchEnCurso, EN_CURSO_POLL_MS);
         return () => clearInterval(interval);
@@ -89,14 +106,18 @@ const Ingreso: React.FC<IngresoProps> = ({ onLogout, onNavigate }) => {
         return () => clearInterval(interval);
     }, [fetchHistorial]);
 
-    const handleIngreso = async (dniParam?: string) => {
+    const handleIngreso = async (dniParam?: string, idSede?: number) => {
         const dniTrim = (dniParam ?? dni).trim();
         if (!dniTrim) return;
         if (dniParam) setIngresandoDni(dniParam);
         setLoading(true);
         setResult(null);
         try {
-            const res = await fetch(`${API_URL}/socios/${dniTrim}/ingreso`, { method: 'PATCH' });
+            const res = await fetch(`${API_URL}/socios/${dniTrim}/ingreso`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ idSede }),
+            });
             const data = await res.json();
             if (!res.ok) throw new Error(data.message ?? 'Error al registrar ingreso.');
             const r: IngresoResult = { ...data, dni: dniTrim, timestamp: new Date() };
@@ -114,8 +135,22 @@ const Ingreso: React.FC<IngresoProps> = ({ onLogout, onNavigate }) => {
         }
     };
 
+    const abrirSelectorSede = (dniParam?: string) => {
+        const dniTrim = (dniParam ?? dni).trim();
+        if (!dniTrim) return;
+        setDniPendiente(dniTrim);
+        setSedeSeleccionada(sedes.length === 1 ? String(sedes[0].idSede) : '');
+        setShowSedeModal(true);
+    };
+
+    const confirmarSedeYRegistrar = () => {
+        if (!sedeSeleccionada) return;
+        setShowSedeModal(false);
+        handleIngreso(dniPendiente, Number(sedeSeleccionada));
+    };
+
     const handleKeyDown = (e: React.KeyboardEvent) => {
-        if (e.key === 'Enter') handleIngreso();
+        if (e.key === 'Enter') abrirSelectorSede();
     };
 
     const formatTime = (d: Date) =>
@@ -179,7 +214,7 @@ const Ingreso: React.FC<IngresoProps> = ({ onLogout, onNavigate }) => {
                                             </span>
                                         ) : (
                                             <button
-                                                onClick={() => handleIngreso(s.dni)}
+                                                onClick={() => handleIngreso(s.dni, s.idSede)}
                                                 disabled={loading}
                                                 className="shrink-0 text-xs font-semibold px-3 py-2 rounded-lg bg-primary-500 hover:bg-primary-600 text-white transition-colors duration-150 disabled:opacity-60"
                                             >
@@ -210,7 +245,7 @@ const Ingreso: React.FC<IngresoProps> = ({ onLogout, onNavigate }) => {
                             className="flex-1 px-4 py-3 border-2 border-gray-200 bg-gray-50 rounded-xl text-lg outline-none tracking-wide focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary/20 transition-all duration-150"
                         />
                         <button
-                            onClick={() => handleIngreso()}
+                            onClick={() => abrirSelectorSede()}
                             disabled={loading || !dni.trim()}
                             className={`px-6 rounded-xl text-[15px] font-semibold text-white transition-all duration-150 active:scale-95 ${loading || !dni.trim() ? 'bg-primary-300 cursor-not-allowed' : 'bg-primary-500 hover:bg-primary-600 shadow-md shadow-primary-500/30'}`}
                         >
@@ -283,7 +318,7 @@ const Ingreso: React.FC<IngresoProps> = ({ onLogout, onNavigate }) => {
                                     <div className="flex-1 min-w-0">
                                         <p className="text-[14px] font-semibold text-gray-900 truncate">{item.nombre} {item.apellido}</p>
                                         <p className="text-xs text-gray-500 mt-0.5">
-                                            {formatFecha(new Date(item.fecha))}
+                                            {formatFecha(new Date(item.fecha))}{item.nombreSede ? ` · ${item.nombreSede}` : ''}
                                         </p>
                                     </div>
                                     {i === 0 && <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 rounded-full px-2 py-0.5 shrink-0">Reciente</span>}
@@ -293,6 +328,48 @@ const Ingreso: React.FC<IngresoProps> = ({ onLogout, onNavigate }) => {
                     )}
                 </div>
             </div>
+
+            {/* Selector de sucursal antes de registrar el ingreso */}
+            {showSedeModal && (
+                <div
+                    onClick={() => setShowSedeModal(false)}
+                    className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[1000] p-4 animate-fadeIn"
+                >
+                    <div
+                        onClick={(e) => e.stopPropagation()}
+                        className="bg-white rounded-2xl p-7 w-full max-w-xs shadow-2xl animate-popIn"
+                    >
+                        <h3 className="text-lg font-bold text-gray-900 mb-1">¿En qué sucursal?</h3>
+                        <p className="text-sm text-gray-500 mb-4">DNI {dniPendiente}</p>
+                        <select
+                            autoFocus
+                            value={sedeSeleccionada}
+                            onChange={(e) => setSedeSeleccionada(e.target.value)}
+                            className="w-full px-3 py-2.5 border-2 border-gray-200 bg-gray-50 rounded-xl text-sm outline-none focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary/20 transition-all duration-150 mb-4"
+                        >
+                            <option value="">Elegí una sucursal</option>
+                            {sedes.map((s) => (
+                                <option key={s.idSede} value={s.idSede}>{s.nombreSede}</option>
+                            ))}
+                        </select>
+                        <div className="flex gap-2.5">
+                            <button
+                                onClick={() => setShowSedeModal(false)}
+                                className="flex-1 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-lg text-sm transition-colors duration-150"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                onClick={confirmarSedeYRegistrar}
+                                disabled={!sedeSeleccionada || loading}
+                                className="flex-1 px-4 py-2.5 bg-primary-500 hover:bg-primary-600 disabled:opacity-60 text-white font-semibold rounded-lg text-sm transition-colors duration-150"
+                            >
+                                {loading ? '...' : 'Confirmar'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </AppShell>
     );
 };

@@ -50,3 +50,13 @@ DROP TABLE IF EXISTS "Actividades";
 -- 5. Foto de perfil del socio (data URL en base64, subida desde la PWA)
 ALTER TABLE "Socios"
   ADD COLUMN IF NOT EXISTS "fotoUrl" TEXT;
+
+-- 6. Sede en la que se registra cada ingreso
+ALTER TABLE "LogIngresos"
+  ADD COLUMN IF NOT EXISTS "idSede" INT;
+
+-- 7. Fechas de plan y observaciones del socio
+ALTER TABLE "Socios"
+  ADD COLUMN IF NOT EXISTS "inicioPlan" DATE,
+  ADD COLUMN IF NOT EXISTS "finPlan" DATE,
+  ADD COLUMN IF NOT EXISTS "observaciones" TEXT;

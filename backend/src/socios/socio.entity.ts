@@ -43,4 +43,13 @@ export class Socio {
 
   @Column({ name: 'fotoUrl', type: 'text', nullable: true })
   fotoUrl: string | null;
+
+  @Column({ name: 'inicioPlan', type: 'date', nullable: true })
+  inicioPlan: string | null;
+
+  @Column({ name: 'finPlan', type: 'date', nullable: true })
+  finPlan: string | null;
+
+  @Column({ name: 'observaciones', type: 'text', nullable: true })
+  observaciones: string | null;
 }

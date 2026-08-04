@@ -38,6 +38,7 @@ export default function PerfilPage() {
     const [uploadingFoto, setUploadingFoto] = useState(false)
     const [fotoError, setFotoError] = useState('')
     const fileInputRef = useRef<HTMLInputElement>(null)
+    const cameraInputRef = useRef<HTMLInputElement>(null)
 
     useEffect(() => {
         const raw = localStorage.getItem('socio')
@@ -129,13 +130,20 @@ export default function PerfilPage() {
                             </button>
 
                             {showFotoMenu && (
-                                <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 z-20 w-44 rounded-xl bg-gray-900 border border-white/15 shadow-2xl overflow-hidden animate-fade-in">
+                                <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 z-20 w-48 rounded-xl bg-gray-900 border border-white/15 shadow-2xl overflow-hidden animate-fade-in">
+                                    <button
+                                        type="button"
+                                        onClick={() => cameraInputRef.current?.click()}
+                                        className="w-full text-left px-4 py-2.5 text-sm text-white hover:bg-white/10 transition-colors"
+                                    >
+                                        Sacar foto
+                                    </button>
                                     <button
                                         type="button"
                                         onClick={() => fileInputRef.current?.click()}
-                                        className="w-full text-left px-4 py-2.5 text-sm text-white hover:bg-white/10 transition-colors"
+                                        className="w-full text-left px-4 py-2.5 text-sm text-white hover:bg-white/10 transition-colors border-t border-white/10"
                                     >
-                                        {socio.fotoUrl ? 'Cambiar foto' : 'Poner foto'}
+                                        Elegir de galería
                                     </button>
                                     {socio.fotoUrl && (
                                         <button
@@ -149,6 +157,14 @@ export default function PerfilPage() {
                                 </div>
                             )}
                         </div>
+                        <input
+                            ref={cameraInputRef}
+                            type="file"
+                            accept="image/*"
+                            capture="user"
+                            className="hidden"
+                            onChange={handleFileChange}
+                        />
                         <input
                             ref={fileInputRef}
                             type="file"

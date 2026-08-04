@@ -8,6 +8,9 @@ export class LogIngreso {
   @Column({ name: 'dniSocio' })
   dniSocio: string;
 
+  @Column({ name: 'idSede', type: 'int', nullable: true })
+  idSede: number | null;
+
   @CreateDateColumn({ name: 'fecha' })
   fecha: Date;
 }

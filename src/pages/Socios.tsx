@@ -22,6 +22,9 @@ interface Member {
     deuda: string | null;
     idProfesor: string | null;
     fotoUrl: string | null;
+    inicioPlan: string | null;
+    finPlan: string | null;
+    observaciones: string | null;
 }
 
 interface Membresia {
@@ -48,6 +51,9 @@ type NewMemberForm = {
     clasesRestantes: string;
     deuda: string;
     idProfesor: string;
+    inicioPlan: string;
+    finPlan: string;
+    observaciones: string;
 };
 
 const emptyForm: NewMemberForm = {
@@ -61,6 +67,9 @@ const emptyForm: NewMemberForm = {
     clasesRestantes: '',
     deuda: '',
     idProfesor: '',
+    inicioPlan: '',
+    finPlan: '',
+    observaciones: '',
 };
 
 const inputClass = 'w-full px-3 py-2.5 border border-gray-200 bg-gray-50 rounded-lg text-sm outline-none focus:ring-2 focus:ring-primary focus:border-transparent focus:bg-white transition-all duration-150';
@@ -156,6 +165,9 @@ const Socios: React.FC<SociosProps> = ({ onLogout, onNavigate }) => {
                     clasesRestantes: newMember.clasesRestantes || undefined,
                     deuda: newMember.deuda || undefined,
                     idProfesor: newMember.idProfesor || undefined,
+                    inicioPlan: newMember.inicioPlan || undefined,
+                    finPlan: newMember.finPlan || undefined,
+                    observaciones: newMember.observaciones || undefined,
                 }),
             });
             if (!res.ok) throw new Error('No se pudo crear el socio');
@@ -463,6 +475,20 @@ const Socios: React.FC<SociosProps> = ({ onLogout, onNavigate }) => {
                                     {profesores.map((p) => <option key={p.dni} value={p.dni}>{p.nombre} {p.apellido}</option>)}
                                 </select>
                             </div>
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label className={labelClass}>Inicio de plan</label>
+                                    <input type="date" value={newMember.inicioPlan} onChange={(e) => setNewMember({ ...newMember, inicioPlan: e.target.value })} className={inputClass} />
+                                </div>
+                                <div>
+                                    <label className={labelClass}>Fin de plan</label>
+                                    <input type="date" value={newMember.finPlan} onChange={(e) => setNewMember({ ...newMember, finPlan: e.target.value })} className={inputClass} />
+                                </div>
+                            </div>
+                            <div>
+                                <label className={labelClass}>Observaciones</label>
+                                <textarea value={newMember.observaciones} onChange={(e) => setNewMember({ ...newMember, observaciones: e.target.value })} rows={3} className={`${inputClass} resize-none`} />
+                            </div>
 
                             <button
                                 type="submit"
@@ -525,7 +551,20 @@ const Socios: React.FC<SociosProps> = ({ onLogout, onNavigate }) => {
                                     return p ? `${p.nombre} ${p.apellido}` : '-';
                                 })()}
                             </div>
+                            <div className="bg-gray-100 px-4 py-2 rounded-lg text-sm text-gray-800">
+                                <strong>Inicio de plan:</strong> {selectedMember.inicioPlan ?? '-'}
+                            </div>
+                            <div className="bg-gray-100 px-4 py-2 rounded-lg text-sm text-gray-800">
+                                <strong>Fin de plan:</strong> {selectedMember.finPlan ?? '-'}
+                            </div>
                         </div>
+
+                        {selectedMember.observaciones && (
+                            <div className="bg-amber-50 border border-amber-100 rounded-xl p-4 mb-6">
+                                <p className="text-xs font-semibold text-amber-700 uppercase tracking-wide mb-1">Observaciones</p>
+                                <p className="text-sm text-amber-900 whitespace-pre-wrap">{selectedMember.observaciones}</p>
+                            </div>
+                        )}
 
                         <div className="grid grid-cols-2 gap-4 mb-8">
                             <div className="bg-gray-100 rounded-xl p-5">

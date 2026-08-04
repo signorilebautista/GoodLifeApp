@@ -8,6 +8,7 @@ import { PlanSocio } from './plan-socio.entity';
 import { PagoSocio } from './pago-socio.entity';
 import { LogBaja } from './log-baja.entity';
 import { LogIngreso } from './log-ingreso.entity';
+import { Sede } from '../turnero/sede.entity';
 import { CreateSocioDto, UpdateSocioDto } from './socio.dto';
 import { MailService } from '../mail/mail.service';
 
@@ -26,6 +27,9 @@ export interface SocioConDetalle {
   fechaUltimoPago: string | null;
   proximoPago: string | null;
   fotoUrl: string | null;
+  inicioPlan: string | null;
+  finPlan: string | null;
+  observaciones: string | null;
 }
 
 export interface SocioVencimiento {
@@ -87,6 +91,9 @@ export class SociosService {
       .addSelect('s."fechaUltimoPago"', 'fechaUltimoPago')
       .addSelect('s."proximoPago"', 'proximoPago')
       .addSelect('s."fotoUrl"', 'fotoUrl')
+      .addSelect('s."inicioPlan"', 'inicioPlan')
+      .addSelect('s."finPlan"', 'finPlan')
+      .addSelect('s."observaciones"', 'observaciones')
       .where('s."estado" = :estado', { estado: 'A' })
       .orderBy('s."DNI"', 'ASC')
       .getRawMany();
@@ -109,6 +116,9 @@ export class SociosService {
         idMembresia: dto.idMembresia ?? existing.idMembresia,
         clasesRestantes: dto.clasesRestantes ?? existing.clasesRestantes,
         idProfesor: dto.idProfesor ?? existing.idProfesor,
+        inicioPlan: dto.inicioPlan ?? existing.inicioPlan,
+        finPlan: dto.finPlan ?? existing.finPlan,
+        observaciones: dto.observaciones ?? existing.observaciones,
         estado: 'A',
       });
       if (dto.deuda !== undefined) {
@@ -129,6 +139,9 @@ export class SociosService {
       idMembresia: dto.idMembresia,
       clasesRestantes: dto.clasesRestantes,
       idProfesor: dto.idProfesor,
+      inicioPlan: dto.inicioPlan,
+      finPlan: dto.finPlan,
+      observaciones: dto.observaciones,
       estado: 'A',
     });
     const saved = await this.sociosRepository.save(socio);
@@ -199,6 +212,9 @@ export class SociosService {
     }
     if (dto.clasesRestantes !== undefined) fields.clasesRestantes = dto.clasesRestantes;
     if (dto.idProfesor !== undefined) fields.idProfesor = dto.idProfesor;
+    if (dto.inicioPlan !== undefined) fields.inicioPlan = dto.inicioPlan;
+    if (dto.finPlan !== undefined) fields.finPlan = dto.finPlan;
+    if (dto.observaciones !== undefined) fields.observaciones = dto.observaciones;
 
     if (Object.keys(fields).length) await this.sociosRepository.update({ dni }, fields);
 
@@ -212,7 +228,7 @@ export class SociosService {
     return updated;
   }
 
-  async registrarIngreso(dni: string): Promise<{ ok: boolean; nombre: string; apellido: string; clasesRestantes: number; mensaje: string }> {
+  async registrarIngreso(dni: string, idSede?: number): Promise<{ ok: boolean; nombre: string; apellido: string; clasesRestantes: number; mensaje: string }> {
     const socio = await this.sociosRepository.findOne({ where: { dni } });
     if (!socio) throw new NotFoundException(`Socio con DNI ${dni} no encontrado`);
 
@@ -226,7 +242,7 @@ export class SociosService {
 
     const nuevasClases = clases - 1;
     await this.sociosRepository.update({ dni }, { clasesRestantes: String(nuevasClases) });
-    await this.logIngresoRepository.save(this.logIngresoRepository.create({ dniSocio: dni }));
+    await this.logIngresoRepository.save(this.logIngresoRepository.create({ dniSocio: dni, idSede: idSede ?? null }));
     return { ok: true, nombre, apellido, clasesRestantes: nuevasClases, mensaje: `Ingreso registrado. Le quedan ${nuevasClases} clase${nuevasClases === 1 ? '' : 's'}.` };
   }
 
@@ -236,15 +252,17 @@ export class SociosService {
     await this.sociosRepository.update({ dni }, { fotoUrl });
   }
 
-  async getIngresosRecientes(): Promise<{ dni: string; nombre: string; apellido: string; fecha: Date }[]> {
+  async getIngresosRecientes(): Promise<{ dni: string; nombre: string; apellido: string; fecha: Date; nombreSede: string | null }[]> {
     const desde = new Date(Date.now() - 24 * 60 * 60 * 1000);
     return this.logIngresoRepository
       .createQueryBuilder('li')
       .innerJoin(Socio, 's', 's."DNI" = li."dniSocio"')
+      .leftJoin(Sede, 'se', 'se."idSede" = li."idSede"')
       .select('li."dniSocio"', 'dni')
       .addSelect('s.nombre', 'nombre')
       .addSelect('s.apellido', 'apellido')
       .addSelect('li.fecha', 'fecha')
+      .addSelect('se."nombreSede"', 'nombreSede')
       .where('li.fecha >= :desde', { desde })
       .orderBy('li.fecha', 'DESC')
       .getRawMany();
