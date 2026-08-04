@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, type ChangeEvent } from 'react'
+import { useState, useEffect, useRef, useCallback, type ChangeEvent } from 'react'
 import Navbar from '../components/Navbar'
 import logoGoodLife from '../assets/logo-goodlife.png'
 import backgroundGym from '../assets/background-gym.jpg'
@@ -29,6 +29,24 @@ function comprimirImagen(file: File): Promise<string> {
     })
 }
 
+interface RegistroPeso {
+    id: number
+    ejercicioId: number
+    peso: number
+    fecha: string
+}
+
+interface EjercicioConHistorial {
+    idEjercicio: number
+    nombre: string
+    registros: RegistroPeso[]
+}
+
+function formatFecha(isoDate: string): string {
+    const [y, m, d] = isoDate.slice(0, 10).split('-')
+    return `${d}/${m}/${y}`
+}
+
 export default function PerfilPage() {
     const textGray = "text-white/60 font-medium"
     const textDark = "text-white font-bold"
@@ -40,10 +58,57 @@ export default function PerfilPage() {
     const fileInputRef = useRef<HTMLInputElement>(null)
     const cameraInputRef = useRef<HTMLInputElement>(null)
 
+    // Progreso
+    const [progreso, setProgreso] = useState<EjercicioConHistorial[]>([])
+    const [loadingProgreso, setLoadingProgreso] = useState(true)
+    const [expandidos, setExpandidos] = useState<Set<number>>(new Set())
+
     useEffect(() => {
         const raw = localStorage.getItem('socio')
         if (raw) setSocio(JSON.parse(raw))
     }, [])
+
+    const fetchProgreso = useCallback(async (dni: string) => {
+        setLoadingProgreso(true)
+        try {
+            const [ejRes, pesosRes] = await Promise.all([
+                fetch(`${API_URL}/ejercicios`),
+                fetch(`${API_URL}/rutina/pesos-actuales?usuarioId=${encodeURIComponent(dni)}`),
+            ])
+            const ejs: { idEjercicio: number; nombre: string }[] = ejRes.ok ? await ejRes.json() : []
+            const pesosActuales: Record<number, number> = pesosRes.ok ? await pesosRes.json() : {}
+
+            const ejsConPeso = ejs.filter(e => pesosActuales[e.idEjercicio] !== undefined)
+
+            const historials = await Promise.all(
+                ejsConPeso.map(async ej => {
+                    const res = await fetch(
+                        `${API_URL}/rutina/historial?usuarioId=${encodeURIComponent(dni)}&ejercicioId=${ej.idEjercicio}`,
+                    )
+                    const registros: RegistroPeso[] = res.ok ? await res.json() : []
+                    return { idEjercicio: ej.idEjercicio, nombre: ej.nombre, registros }
+                }),
+            )
+            setProgreso(historials)
+        } finally {
+            setLoadingProgreso(false)
+        }
+    }, [])
+
+    useEffect(() => {
+        const raw = localStorage.getItem('socio')
+        const dni = raw ? JSON.parse(raw).DNI : null
+        if (dni) fetchProgreso(dni)
+        else setLoadingProgreso(false)
+    }, [fetchProgreso])
+
+    const toggleEj = (id: number) => {
+        setExpandidos(prev => {
+            const next = new Set(prev)
+            next.has(id) ? next.delete(id) : next.add(id)
+            return next
+        })
+    }
 
     const nombreCompleto = [socio.nombre, socio.apellido].filter(Boolean).join(' ') || '—'
 
@@ -90,18 +155,16 @@ export default function PerfilPage() {
         <div className="relative min-h-screen w-full overflow-hidden bg-gray-950 pb-28">
             <div
                 className="absolute inset-0 bg-cover bg-center scale-110"
-                style={{
-                    backgroundImage: `url(${backgroundGym})`,
-                    filter: 'blur(10px)',
-                }}
+                style={{ backgroundImage: `url(${backgroundGym})`, filter: 'blur(10px)' }}
             />
             <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/60 to-gray-950" />
 
             <div className="relative z-10 px-6 pt-12">
                 <h1 className="text-3xl font-bold text-white mb-6 pl-1 tracking-tight drop-shadow-lg">Perfil</h1>
 
-                <div className="rounded-3xl bg-white/10 backdrop-blur-2xl border border-white/20 shadow-2xl p-6 mb-8 relative animate-fade-in">
+                <div className="rounded-3xl bg-white/10 backdrop-blur-2xl border border-white/20 shadow-2xl p-6 mb-6 relative animate-fade-in">
 
+                    {/* Foto */}
                     <div className="flex flex-col items-center mb-6">
                         <div className="relative">
                             <div className="w-24 h-24 rounded-full border-2 border-white/30 flex items-center justify-center bg-white/10 backdrop-blur-md shadow-lg overflow-hidden">
@@ -110,11 +173,7 @@ export default function PerfilPage() {
                                 ) : socio.fotoUrl ? (
                                     <img src={socio.fotoUrl} alt="Foto de perfil" className="w-full h-full object-cover" />
                                 ) : (
-                                    <img
-                                        src={logoGoodLife}
-                                        alt="Good Life Center"
-                                        className="w-16 h-16 object-contain"
-                                    />
+                                    <img src={logoGoodLife} alt="Good Life Center" className="w-16 h-16 object-contain" />
                                 )}
                             </div>
                             <button
@@ -131,50 +190,23 @@ export default function PerfilPage() {
 
                             {showFotoMenu && (
                                 <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 z-20 w-48 rounded-xl bg-gray-900 border border-white/15 shadow-2xl overflow-hidden animate-fade-in">
-                                    <button
-                                        type="button"
-                                        onClick={() => cameraInputRef.current?.click()}
-                                        className="w-full text-left px-4 py-2.5 text-sm text-white hover:bg-white/10 transition-colors"
-                                    >
+                                    <button type="button" onClick={() => cameraInputRef.current?.click()} className="w-full text-left px-4 py-2.5 text-sm text-white hover:bg-white/10 transition-colors">
                                         Sacar foto
                                     </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => fileInputRef.current?.click()}
-                                        className="w-full text-left px-4 py-2.5 text-sm text-white hover:bg-white/10 transition-colors border-t border-white/10"
-                                    >
+                                    <button type="button" onClick={() => fileInputRef.current?.click()} className="w-full text-left px-4 py-2.5 text-sm text-white hover:bg-white/10 transition-colors border-t border-white/10">
                                         Elegir de galería
                                     </button>
                                     {socio.fotoUrl && (
-                                        <button
-                                            type="button"
-                                            onClick={handleQuitarFoto}
-                                            className="w-full text-left px-4 py-2.5 text-sm text-red-400 hover:bg-white/10 transition-colors border-t border-white/10"
-                                        >
+                                        <button type="button" onClick={handleQuitarFoto} className="w-full text-left px-4 py-2.5 text-sm text-red-400 hover:bg-white/10 transition-colors border-t border-white/10">
                                             Quitar foto
                                         </button>
                                     )}
                                 </div>
                             )}
                         </div>
-                        <input
-                            ref={cameraInputRef}
-                            type="file"
-                            accept="image/*"
-                            capture="user"
-                            className="hidden"
-                            onChange={handleFileChange}
-                        />
-                        <input
-                            ref={fileInputRef}
-                            type="file"
-                            accept="image/*"
-                            className="hidden"
-                            onChange={handleFileChange}
-                        />
-                        {fotoError && (
-                            <p role="alert" className="text-red-300 text-xs font-medium mt-2">{fotoError}</p>
-                        )}
+                        <input ref={cameraInputRef} type="file" accept="image/*" capture="user" className="hidden" onChange={handleFileChange} />
+                        <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
+                        {fotoError && <p role="alert" className="text-red-300 text-xs font-medium mt-2">{fotoError}</p>}
                     </div>
 
                     {/* Información Personal */}
@@ -210,7 +242,7 @@ export default function PerfilPage() {
                     </div>
 
                     {/* Membresía */}
-                    <div className="mb-6">
+                    <div>
                         <h2 className="text-cyan-400 font-bold text-xs uppercase tracking-widest mb-2">Membresía</h2>
                         <div className="h-px w-full bg-white/15 mb-4"></div>
                         <dl className="space-y-2 text-sm">
@@ -244,8 +276,76 @@ export default function PerfilPage() {
                             )}
                         </dl>
                     </div>
+                </div>
 
+                {/* Tu Progreso */}
+                <div className="rounded-3xl bg-white/10 backdrop-blur-2xl border border-white/20 shadow-2xl p-6 mb-6 animate-fade-in">
+                    <h2 className="text-cyan-400 font-bold text-xs uppercase tracking-widest mb-2">Tu Progreso</h2>
+                    <div className="h-px w-full bg-white/15 mb-4"></div>
 
+                    {loadingProgreso && (
+                        <div className="flex justify-center py-6">
+                            <span className="w-6 h-6 border-2 border-white/30 border-t-cyan-400 rounded-full animate-spin" />
+                        </div>
+                    )}
+
+                    {!loadingProgreso && progreso.length === 0 && (
+                        <p className="text-white/40 text-sm text-center py-4">
+                            Todavía no registraste ningún peso. Hacelo desde la sección Entrenamiento.
+                        </p>
+                    )}
+
+                    {!loadingProgreso && progreso.length > 0 && (
+                        <div className="space-y-2">
+                            {progreso.map(ej => {
+                                const abierto = expandidos.has(ej.idEjercicio)
+                                const ultimo = ej.registros[ej.registros.length - 1]
+                                return (
+                                    <div key={ej.idEjercicio} className="rounded-2xl overflow-hidden border border-white/10">
+                                        <button
+                                            type="button"
+                                            onClick={() => toggleEj(ej.idEjercicio)}
+                                            className="w-full flex items-center justify-between px-4 py-3 hover:bg-white/5 transition-colors text-left"
+                                        >
+                                            <div>
+                                                <p className="text-white font-semibold text-sm capitalize">{ej.nombre}</p>
+                                                {ultimo && (
+                                                    <p className="text-white/40 text-xs mt-0.5">
+                                                        Último: <span className="text-cyan-400 font-bold">{String(ultimo.peso).replace('.', ',')} kg</span> · {formatFecha(ultimo.fecha)}
+                                                    </p>
+                                                )}
+                                            </div>
+                                            <svg
+                                                xmlns="http://www.w3.org/2000/svg"
+                                                className={`h-4 w-4 text-white/40 shrink-0 ml-3 transition-transform duration-200 ${abierto ? 'rotate-180' : ''}`}
+                                                fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"
+                                            >
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                            </svg>
+                                        </button>
+
+                                        {abierto && (
+                                            <div className="border-t border-white/10 px-4 py-3 space-y-2 bg-white/5">
+                                                {[...ej.registros].reverse().map(r => (
+                                                    <div key={r.id} className="flex items-center justify-between text-sm">
+                                                        <div className="flex items-center gap-2 text-white/50">
+                                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                                            </svg>
+                                                            <span>{formatFecha(r.fecha)}</span>
+                                                        </div>
+                                                        <span className="text-cyan-400 font-bold">
+                                                            {String(r.peso).replace('.', ',')} kg
+                                                        </span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                )
+                            })}
+                        </div>
+                    )}
                 </div>
             </div>
 

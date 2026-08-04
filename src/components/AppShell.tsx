@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Users, Calendar, FileText, BarChart3, Settings, LogOut, UserPlus, LogIn, GraduationCap, Home, Menu, X, CreditCard, ClipboardList, Dumbbell } from 'lucide-react';
+import { Users, Calendar, FileText, BarChart3, Settings, LogOut, UserPlus, LogIn, GraduationCap, Home, Menu, X, CreditCard, ClipboardList } from 'lucide-react';
 import logo from '../assets/logo.png';
 
 interface AppShellProps {
@@ -20,7 +20,6 @@ const allMenuItems = [
     { icon: LogIn, label: 'Ingreso', path: '/ingreso', adminOnly: false },
     { icon: BarChart3, label: 'Estadísticas', path: '/estadisticas', adminOnly: false },
     { icon: GraduationCap, label: 'Profesores', path: '/profesores', adminOnly: false },
-    { icon: Dumbbell, label: 'Entrenamiento', path: '/rutina', adminOnly: false },
     { icon: UserPlus, label: 'Agregar', path: '/crear-cuenta', adminOnly: true },
     { icon: Settings, label: 'Configuraciones', path: '/configuraciones', adminOnly: false },
 ];

@@ -13,7 +13,6 @@ import Ingreso from './pages/Ingreso';
 import Profesores from './pages/Profesores';
 import CambiarContrasena from './pages/CambiarContrasena';
 import Vencimientos from './pages/Vencimientos';
-import Rutina from './pages/Rutina';
 import LoadingScreen from './components/LoadingScreen';
 import { prefetchRoute } from './utils/prefetch';
 import { SettingsProvider } from './context/SettingsContext';
@@ -140,10 +139,6 @@ function AppContent() {
             <Route
                 path="/vencimientos"
                 element={isLoggedIn ? <Vencimientos onLogout={handleLogout} onNavigate={handleNavigate} /> : <Navigate to="/" replace />}
-            />
-            <Route
-                path="/rutina"
-                element={isLoggedIn ? <Rutina onLogout={handleLogout} onNavigate={handleNavigate} /> : <Navigate to="/" replace />}
             />
             <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
