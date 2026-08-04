@@ -52,12 +52,12 @@ export default function TabataConfigPage() {
                     />
                 </div>
 
-                <div className="relative mb-8">
+                <div className="mb-8">
                     {/* Back Button */}
                     <button
                         type="button"
                         onClick={() => navigate('/tabata')}
-                        className="absolute top-1/2 -translate-y-1/2 left-0 text-white/70 font-semibold text-sm flex items-center hover:text-cyan-400 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 rounded-lg px-1"
+                        className="mb-3 text-white/70 font-semibold text-sm flex items-center hover:text-cyan-400 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 rounded-lg px-1 -ml-1"
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />

@@ -51,6 +51,15 @@ export default function EntrenamientoPage() {
     const [activeIndex, setActiveIndex] = useState(0)
     const [loading, setLoading] = useState(true)
     const [videoModal, setVideoModal] = useState<{ name: string; url: string } | null>(null)
+    const [expandedBlocks, setExpandedBlocks] = useState<Set<number>>(new Set())
+
+    const toggleBlock = (index: number) => {
+        setExpandedBlocks((prev) => {
+            const next = new Set(prev)
+            next.has(index) ? next.delete(index) : next.add(index)
+            return next
+        })
+    }
 
     useEffect(() => {
         const raw = localStorage.getItem('socio')
@@ -122,7 +131,7 @@ export default function EntrenamientoPage() {
                             <button
                                 key={day.label}
                                 type="button"
-                                onClick={() => setActiveIndex(index)}
+                                onClick={() => { setActiveIndex(index); setExpandedBlocks(new Set()) }}
                                 aria-pressed={activeIndex === index}
                                 aria-label={day.label}
                                 className={`w-12 h-12 rounded-xl flex items-center justify-center text-xl font-bold shadow-md transition-all duration-300 transform active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-950 ${activeIndex === index
@@ -141,11 +150,25 @@ export default function EntrenamientoPage() {
                     {currentDay.blocks.map((block, index) => {
                         const ejercicios = block.exercises.filter(e => e.name)
                         if (ejercicios.length === 0) return null
+                        const expandido = expandedBlocks.has(index)
                         return (
                             <div key={index} className="rounded-3xl overflow-hidden shadow-lg border border-white/15 bg-white/5 backdrop-blur-xl">
-                                <div className="bg-cyan-500/20 border-b border-white/10 px-6 py-3">
-                                    <h3 className="text-white text-lg font-bold">{block.name}:</h3>
-                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => toggleBlock(index)}
+                                    aria-expanded={expandido}
+                                    className="w-full flex items-center justify-between bg-cyan-500/20 border-b border-white/10 px-6 py-3 text-left hover:bg-cyan-500/25 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400"
+                                >
+                                    <h3 className="text-white text-lg font-bold">{block.name}</h3>
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        className={`h-5 w-5 text-white/70 shrink-0 transition-transform duration-200 ${expandido ? 'rotate-180' : ''}`}
+                                        fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"
+                                    >
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                    </svg>
+                                </button>
+                                {expandido && (
                                 <div className="p-2 space-y-1">
                                     {ejercicios.map((exercise) => (
                                         <div key={exercise.idEjercicio} className="flex items-center justify-between p-3 hover:bg-white/10 rounded-xl transition-colors">
@@ -171,6 +194,7 @@ export default function EntrenamientoPage() {
                                         </div>
                                     ))}
                                 </div>
+                                )}
                             </div>
                         )
                     })}
