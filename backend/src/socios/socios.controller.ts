@@ -70,6 +70,16 @@ export class SociosController {
     return this.sociosService.savePlan(dni, body.plan);
   }
 
+  @Get(':dni/examen')
+  getExamen(@Param('dni') dni: string) {
+    return this.sociosService.getExamen(dni);
+  }
+
+  @Put(':dni/examen')
+  saveExamen(@Param('dni') dni: string, @Body() body: { examen: object }) {
+    return this.sociosService.saveExamen(dni, body.examen);
+  }
+
   @Patch(':dni')
   update(@Param('dni') dni: string, @Body() dto: UpdateSocioDto) {
     return this.sociosService.update(dni, dto);

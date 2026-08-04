@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Users, Calendar, FileText, BarChart3, Settings, LogOut, UserPlus, LogIn, GraduationCap, Home, Menu, X, CreditCard } from 'lucide-react';
+import { Users, Calendar, FileText, BarChart3, Settings, LogOut, UserPlus, LogIn, GraduationCap, Home, Menu, X, CreditCard, ClipboardList } from 'lucide-react';
 import logo from '../assets/logo.png';
 
 interface AppShellProps {
@@ -13,6 +13,7 @@ interface AppShellProps {
 const allMenuItems = [
     { icon: Home, label: 'Menú', path: '/menu-principal', adminOnly: false },
     { icon: Users, label: 'Socios', path: '/socios', adminOnly: false },
+    { icon: ClipboardList, label: 'Exámenes', path: '/examenes', adminOnly: false },
     { icon: FileText, label: 'Planes', path: '/planes', adminOnly: false },
     { icon: CreditCard, label: 'Gestión de Pagos y Venc.', path: '/vencimientos', adminOnly: false },
     { icon: Calendar, label: 'Turnero', path: '/turnero', adminOnly: false },

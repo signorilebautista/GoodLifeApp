@@ -60,3 +60,10 @@ ALTER TABLE "Socios"
   ADD COLUMN IF NOT EXISTS "inicioPlan" DATE,
   ADD COLUMN IF NOT EXISTS "finPlan" DATE,
   ADD COLUMN IF NOT EXISTS "observaciones" TEXT;
+
+-- 8. Planilla de evaluación física por socio (examen funcional)
+CREATE TABLE IF NOT EXISTS "ExamenSocio" (
+  "dniSocio"  VARCHAR PRIMARY KEY,
+  "examen"    JSONB NOT NULL,
+  "updatedAt" TIMESTAMP NOT NULL DEFAULT NOW()
+);

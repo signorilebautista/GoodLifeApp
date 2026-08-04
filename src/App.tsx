@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from
 import LoginPage from './pages/LoginPage';
 import MenuPrincipal from './pages/MenuPrincipal';
 import Socios from './pages/Socios';
+import Examenes from './pages/Examenes';
 import Turnero from './pages/Turnero';
 import Planes from './pages/Planes';
 import Configuraciones from './pages/Configuraciones';
@@ -102,6 +103,10 @@ function AppContent() {
             <Route
                 path="/socios"
                 element={isLoggedIn ? <Socios onLogout={handleLogout} onNavigate={handleNavigate} /> : <Navigate to="/" replace />}
+            />
+            <Route
+                path="/examenes"
+                element={isLoggedIn ? <Examenes onLogout={handleLogout} onNavigate={handleNavigate} /> : <Navigate to="/" replace />}
             />
             <Route
                 path="/turnero"

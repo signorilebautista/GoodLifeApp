@@ -5,6 +5,7 @@ import { Socio } from './socio.entity';
 import { Membresia } from './membresia.entity';
 import { DeudaSocio } from './deuda-socio.entity';
 import { PlanSocio } from './plan-socio.entity';
+import { ExamenSocio } from './examen-socio.entity';
 import { PagoSocio } from './pago-socio.entity';
 import { LogBaja } from './log-baja.entity';
 import { LogIngreso } from './log-ingreso.entity';
@@ -63,6 +64,8 @@ export class SociosService {
     private readonly deudaRepository: Repository<DeudaSocio>,
     @InjectRepository(PlanSocio)
     private readonly planRepository: Repository<PlanSocio>,
+    @InjectRepository(ExamenSocio)
+    private readonly examenRepository: Repository<ExamenSocio>,
     @InjectRepository(LogBaja)
     private readonly logBajaRepository: Repository<LogBaja>,
     @InjectRepository(LogIngreso)
@@ -439,5 +442,14 @@ export class SociosService {
 
   async savePlan(dniSocio: string, plan: object): Promise<void> {
     await this.planRepository.upsert({ dniSocio, plan }, ['dniSocio']);
+  }
+
+  async getExamen(dniSocio: string): Promise<object | null> {
+    const row = await this.examenRepository.findOne({ where: { dniSocio } });
+    return row?.examen ?? null;
+  }
+
+  async saveExamen(dniSocio: string, examen: object): Promise<void> {
+    await this.examenRepository.upsert({ dniSocio, examen }, ['dniSocio']);
   }
 }
