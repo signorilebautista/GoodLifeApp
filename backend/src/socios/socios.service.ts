@@ -444,6 +444,21 @@ export class SociosService {
     await this.planRepository.upsert({ dniSocio, plan }, ['dniSocio']);
   }
 
+  async updateEjercicioPeso(dniSocio: string, idEjercicio: number, peso: number): Promise<void> {
+    const row = await this.planRepository.findOne({ where: { dniSocio } });
+    if (!row) throw new NotFoundException('Plan no encontrado');
+
+    const plan = row.plan as { days: { blocks: { exercises: { idEjercicio: number; peso?: number }[] }[] }[] };
+    for (const day of plan.days ?? []) {
+      for (const block of day.blocks ?? []) {
+        for (const ex of block.exercises ?? []) {
+          if (Number(ex.idEjercicio) === idEjercicio) ex.peso = peso;
+        }
+      }
+    }
+    await this.planRepository.save({ dniSocio, plan });
+  }
+
   async getExamen(dniSocio: string): Promise<object | null> {
     const row = await this.examenRepository.findOne({ where: { dniSocio } });
     return row?.examen ?? null;

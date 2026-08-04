@@ -70,6 +70,14 @@ export class SociosController {
     return this.sociosService.savePlan(dni, body.plan);
   }
 
+  @Patch(':dni/ejercicio-peso')
+  updateEjercicioPeso(
+    @Param('dni') dni: string,
+    @Body() body: { idEjercicio: number; peso: number },
+  ) {
+    return this.sociosService.updateEjercicioPeso(dni, body.idEjercicio, body.peso);
+  }
+
   @Get(':dni/examen')
   getExamen(@Param('dni') dni: string) {
     return this.sociosService.getExamen(dni);

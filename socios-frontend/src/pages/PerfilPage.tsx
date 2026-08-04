@@ -29,22 +29,10 @@ function comprimirImagen(file: File): Promise<string> {
     })
 }
 
-interface RegistroPeso {
-    id: number
-    ejercicioId: number
-    peso: number
-    fecha: string
-}
-
-interface EjercicioConHistorial {
+interface EjercicioConPeso {
     idEjercicio: number
     nombre: string
-    registros: RegistroPeso[]
-}
-
-function formatFecha(isoDate: string): string {
-    const [y, m, d] = isoDate.slice(0, 10).split('-')
-    return `${d}/${m}/${y}`
+    peso: number
 }
 
 export default function PerfilPage() {
@@ -58,10 +46,8 @@ export default function PerfilPage() {
     const fileInputRef = useRef<HTMLInputElement>(null)
     const cameraInputRef = useRef<HTMLInputElement>(null)
 
-    // Progreso
-    const [progreso, setProgreso] = useState<EjercicioConHistorial[]>([])
+    const [progreso, setProgreso] = useState<EjercicioConPeso[]>([])
     const [loadingProgreso, setLoadingProgreso] = useState(true)
-    const [expandidos, setExpandidos] = useState<Set<number>>(new Set())
 
     useEffect(() => {
         const raw = localStorage.getItem('socio')
@@ -71,25 +57,23 @@ export default function PerfilPage() {
     const fetchProgreso = useCallback(async (dni: string) => {
         setLoadingProgreso(true)
         try {
-            const [ejRes, pesosRes] = await Promise.all([
-                fetch(`${API_URL}/ejercicios`),
-                fetch(`${API_URL}/rutina/pesos-actuales?usuarioId=${encodeURIComponent(dni)}`),
-            ])
-            const ejs: { idEjercicio: number; nombre: string }[] = ejRes.ok ? await ejRes.json() : []
-            const pesosActuales: Record<number, number> = pesosRes.ok ? await pesosRes.json() : {}
+            const res = await fetch(`${API_URL}/socios/${dni}/plan`)
+            const plan = res.ok ? await res.json() : null
+            if (!plan?.days) { setProgreso([]); return }
 
-            const ejsConPeso = ejs.filter(e => pesosActuales[e.idEjercicio] !== undefined)
-
-            const historials = await Promise.all(
-                ejsConPeso.map(async ej => {
-                    const res = await fetch(
-                        `${API_URL}/rutina/historial?usuarioId=${encodeURIComponent(dni)}&ejercicioId=${ej.idEjercicio}`,
-                    )
-                    const registros: RegistroPeso[] = res.ok ? await res.json() : []
-                    return { idEjercicio: ej.idEjercicio, nombre: ej.nombre, registros }
-                }),
-            )
-            setProgreso(historials)
+            const vistos = new Set<number>()
+            const lista: EjercicioConPeso[] = []
+            for (const day of plan.days) {
+                for (const block of day.blocks ?? []) {
+                    for (const ex of block.exercises ?? []) {
+                        if (ex.idEjercicio && ex.peso != null && !vistos.has(ex.idEjercicio)) {
+                            vistos.add(ex.idEjercicio)
+                            lista.push({ idEjercicio: ex.idEjercicio, nombre: ex.name, peso: ex.peso })
+                        }
+                    }
+                }
+            }
+            setProgreso(lista)
         } finally {
             setLoadingProgreso(false)
         }
@@ -101,14 +85,6 @@ export default function PerfilPage() {
         if (dni) fetchProgreso(dni)
         else setLoadingProgreso(false)
     }, [fetchProgreso])
-
-    const toggleEj = (id: number) => {
-        setExpandidos(prev => {
-            const next = new Set(prev)
-            next.has(id) ? next.delete(id) : next.add(id)
-            return next
-        })
-    }
 
     const nombreCompleto = [socio.nombre, socio.apellido].filter(Boolean).join(' ') || '—'
 
@@ -297,53 +273,14 @@ export default function PerfilPage() {
 
                     {!loadingProgreso && progreso.length > 0 && (
                         <div className="space-y-2">
-                            {progreso.map(ej => {
-                                const abierto = expandidos.has(ej.idEjercicio)
-                                const ultimo = ej.registros[ej.registros.length - 1]
-                                return (
-                                    <div key={ej.idEjercicio} className="rounded-2xl overflow-hidden border border-white/10">
-                                        <button
-                                            type="button"
-                                            onClick={() => toggleEj(ej.idEjercicio)}
-                                            className="w-full flex items-center justify-between px-4 py-3 hover:bg-white/5 transition-colors text-left"
-                                        >
-                                            <div>
-                                                <p className="text-white font-semibold text-sm capitalize">{ej.nombre}</p>
-                                                {ultimo && (
-                                                    <p className="text-white/40 text-xs mt-0.5">
-                                                        Último: <span className="text-cyan-400 font-bold">{String(ultimo.peso).replace('.', ',')} kg</span> · {formatFecha(ultimo.fecha)}
-                                                    </p>
-                                                )}
-                                            </div>
-                                            <svg
-                                                xmlns="http://www.w3.org/2000/svg"
-                                                className={`h-4 w-4 text-white/40 shrink-0 ml-3 transition-transform duration-200 ${abierto ? 'rotate-180' : ''}`}
-                                                fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"
-                                            >
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                            </svg>
-                                        </button>
-
-                                        {abierto && (
-                                            <div className="border-t border-white/10 px-4 py-3 space-y-2 bg-white/5">
-                                                {[...ej.registros].reverse().map(r => (
-                                                    <div key={r.id} className="flex items-center justify-between text-sm">
-                                                        <div className="flex items-center gap-2 text-white/50">
-                                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                                            </svg>
-                                                            <span>{formatFecha(r.fecha)}</span>
-                                                        </div>
-                                                        <span className="text-cyan-400 font-bold">
-                                                            {String(r.peso).replace('.', ',')} kg
-                                                        </span>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        )}
-                                    </div>
-                                )
-                            })}
+                            {progreso.map(ej => (
+                                <div key={ej.idEjercicio} className="flex items-center justify-between px-4 py-3 rounded-2xl border border-white/10 hover:bg-white/5 transition-colors">
+                                    <p className="text-white font-semibold text-sm capitalize">{ej.nombre}</p>
+                                    <span className="text-cyan-400 font-bold text-base">
+                                        {String(ej.peso).replace('.', ',')} kg
+                                    </span>
+                                </div>
+                            ))}
                         </div>
                     )}
                 </div>

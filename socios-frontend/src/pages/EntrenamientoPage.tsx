@@ -32,6 +32,7 @@ type Exercise = {
     series: string
     videoUrl?: string
     idEjercicio: number
+    peso?: number
 }
 
 type Block = {
@@ -55,7 +56,6 @@ export default function EntrenamientoPage() {
     const [videoModal, setVideoModal] = useState<{ name: string; url: string } | null>(null)
     const [expandedBlocks, setExpandedBlocks] = useState<Set<number>>(new Set())
 
-    // Pesos actuales por ejercicioId
     const [pesosActuales, setPesosActuales] = useState<Record<number, number>>({})
 
     // Modal editar peso
@@ -80,16 +80,25 @@ export default function EntrenamientoPage() {
         const dni = socio?.DNI
         if (!dni) { setLoading(false); return }
 
-        Promise.all([
-            fetch(`${API_URL}/socios/${dni}/plan`)
-                .then(res => res.ok ? res.json() : null)
-                .then(plan => { if (plan?.days) setDays(plan.days) })
-                .catch(() => {}),
-            fetch(`${API_URL}/rutina/pesos-actuales?usuarioId=${encodeURIComponent(dni)}`)
-                .then(res => res.ok ? res.json() : {})
-                .then(pesos => setPesosActuales(pesos))
-                .catch(() => {}),
-        ]).finally(() => setLoading(false))
+        fetch(`${API_URL}/socios/${dni}/plan`)
+            .then(res => res.ok ? res.json() : null)
+            .then(plan => {
+                if (plan?.days) {
+                    setDays(plan.days)
+                    // Extraer pesos del plan
+                    const pesos: Record<number, number> = {}
+                    for (const day of plan.days) {
+                        for (const block of day.blocks ?? []) {
+                            for (const ex of block.exercises ?? []) {
+                                if (ex.idEjercicio && ex.peso != null) pesos[ex.idEjercicio] = ex.peso
+                            }
+                        }
+                    }
+                    setPesosActuales(pesos)
+                }
+            })
+            .catch(() => {})
+            .finally(() => setLoading(false))
     }, [])
 
     const abrirModalPeso = (exercise: Exercise) => {
@@ -107,10 +116,10 @@ export default function EntrenamientoPage() {
         if (!dni) return
         setGuardando(true)
         try {
-            const res = await fetch(`${API_URL}/rutina/peso`, {
-                method: 'POST',
+            const res = await fetch(`${API_URL}/socios/${dni}/ejercicio-peso`, {
+                method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ usuarioId: dni, ejercicioId: modalPeso.idEjercicio, peso }),
+                body: JSON.stringify({ idEjercicio: modalPeso.idEjercicio, peso }),
             })
             if (res.ok) {
                 setPesosActuales(prev => ({ ...prev, [modalPeso.idEjercicio]: peso }))
