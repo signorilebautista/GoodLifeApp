@@ -1,5 +1,7 @@
-import React, { useId, useState } from 'react';
-import { Eye, EyeOff, Sun, Moon, Lock } from 'lucide-react';
+import React, { useCallback, useEffect, useId, useState } from 'react';
+import { Eye, EyeOff, Sun, Moon, Lock, Calendar, ChevronDown, ChevronRight } from 'lucide-react';
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 import AppShell from '../components/AppShell';
 import { useSettings, type FontSize } from '../context/SettingsContext';
 
@@ -75,6 +77,23 @@ const Section: React.FC<{ title: string; children: React.ReactNode; delay?: numb
     </div>
 );
 
+interface Ejercicio {
+    idEjercicio: number;
+    nombre: string;
+}
+
+interface RegistroPeso {
+    id: number;
+    ejercicioId: number;
+    peso: number;
+    fecha: string;
+}
+
+function formatFecha(isoDate: string): string {
+    const [y, m, d] = isoDate.slice(0, 10).split('-');
+    return `${d}/${m}/${y}`;
+}
+
 const Configuraciones: React.FC<ConfiguracionesProps> = ({ onLogout, onNavigate, currentUser }) => {
     const { theme, fontSize, setTheme, setFontSize, changePassword } = useSettings();
 
@@ -83,6 +102,44 @@ const Configuraciones: React.FC<ConfiguracionesProps> = ({ onLogout, onNavigate,
     const [confirmPass, setConfirmPass] = useState('');
     const [passMsg, setPassMsg] = useState<{ text: string; ok: boolean } | null>(null);
     const formId = useId();
+
+    const [ejercicios, setEjercicios] = useState<Ejercicio[]>([]);
+    const [historialPorEj, setHistorialPorEj] = useState<Record<number, RegistroPeso[]>>({});
+    const [expandidos, setExpandidos] = useState<Record<number, boolean>>({});
+    const [loadingProgreso, setLoadingProgreso] = useState(true);
+
+    const fetchProgreso = useCallback(async () => {
+        setLoadingProgreso(true);
+        try {
+            const [ejRes, pesosRes] = await Promise.all([
+                fetch(`${API_URL}/ejercicios`),
+                fetch(`${API_URL}/rutina/pesos-actuales?usuarioId=${encodeURIComponent(currentUser)}`),
+            ]);
+            const ejs: Ejercicio[] = ejRes.ok ? await ejRes.json() : [];
+            const pesosActuales: Record<number, number> = pesosRes.ok ? await pesosRes.json() : {};
+
+            const ejsConPeso = ejs.filter(e => pesosActuales[e.idEjercicio] !== undefined);
+            setEjercicios(ejsConPeso);
+
+            const historials: Record<number, RegistroPeso[]> = {};
+            await Promise.all(
+                ejsConPeso.map(async (ej) => {
+                    const res = await fetch(
+                        `${API_URL}/rutina/historial?usuarioId=${encodeURIComponent(currentUser)}&ejercicioId=${ej.idEjercicio}`,
+                    );
+                    historials[ej.idEjercicio] = res.ok ? await res.json() : [];
+                }),
+            );
+            setHistorialPorEj(historials);
+        } finally {
+            setLoadingProgreso(false);
+        }
+    }, [currentUser]);
+
+    useEffect(() => { fetchProgreso(); }, [fetchProgreso]);
+
+    const toggleEj = (id: number) =>
+        setExpandidos(prev => ({ ...prev, [id]: !prev[id] }));
 
     const handleChangePassword = (e: React.FormEvent) => {
         e.preventDefault();
@@ -153,8 +210,66 @@ const Configuraciones: React.FC<ConfiguracionesProps> = ({ onLogout, onNavigate,
                             onChange={v => setFontSize(v as FontSize)}
                         />
                     </div>
+                </Section>
 
+                {/* Tu Progreso */}
+                <Section title="Tu Progreso" delay={240}>
+                    {loadingProgreso && (
+                        <p className="text-sm text-gray-400 text-center py-4">Cargando...</p>
+                    )}
+                    {!loadingProgreso && ejercicios.length === 0 && (
+                        <p className="text-sm text-gray-400 text-center py-4">
+                            Todavía no registraste ningún peso. Hacelo desde la sección{' '}
+                            <button onClick={() => onNavigate('/rutina')} className="text-primary-600 font-medium hover:underline">
+                                Entrenamiento
+                            </button>.
+                        </p>
+                    )}
+                    {!loadingProgreso && ejercicios.length > 0 && (
+                        <div className="flex flex-col gap-2">
+                            {ejercicios.map(ej => {
+                                const registros = historialPorEj[ej.idEjercicio] ?? [];
+                                const abierto = expandidos[ej.idEjercicio];
+                                const ultimo = registros[registros.length - 1];
+                                return (
+                                    <div key={ej.idEjercicio} className="border border-gray-100 rounded-xl overflow-hidden">
+                                        <button
+                                            onClick={() => toggleEj(ej.idEjercicio)}
+                                            className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors duration-150"
+                                        >
+                                            <div className="text-left">
+                                                <p className="text-sm font-medium text-gray-900">{ej.nombre}</p>
+                                                {ultimo && (
+                                                    <p className="text-xs text-gray-400 mt-0.5">
+                                                        Último: <span className="text-emerald-600 font-semibold">{String(ultimo.peso).replace('.', ',')} kg</span> · {formatFecha(ultimo.fecha)}
+                                                    </p>
+                                                )}
+                                            </div>
+                                            <span className="text-gray-400 ml-3 shrink-0">
+                                                {abierto ? <ChevronDown size={15} /> : <ChevronRight size={15} />}
+                                            </span>
+                                        </button>
 
+                                        {abierto && (
+                                            <div className="border-t border-gray-100 px-4 py-3 flex flex-col gap-1.5 bg-gray-50">
+                                                {[...registros].reverse().map(r => (
+                                                    <div key={r.id} className="flex items-center justify-between text-sm">
+                                                        <div className="flex items-center gap-1.5 text-gray-500">
+                                                            <Calendar size={12} />
+                                                            <span>{formatFecha(r.fecha)}</span>
+                                                        </div>
+                                                        <span className="text-emerald-600 font-bold">
+                                                            {String(r.peso).replace('.', ',')} kg
+                                                        </span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
                 </Section>
             </div>
         </AppShell>

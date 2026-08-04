@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Pencil, TrendingUp, X, Calendar, ChevronDown, ChevronRight } from 'lucide-react';
+import { Pencil, X, ChevronDown, ChevronRight } from 'lucide-react';
 import AppShell from '../components/AppShell';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
@@ -16,23 +16,11 @@ interface Ejercicio {
     videoUrl: string | null;
 }
 
-interface RegistroPeso {
-    id: number;
-    ejercicioId: number;
-    peso: number;
-    fecha: string;
-}
-
 const inputClass =
     'w-full px-3 py-2.5 border border-gray-200 bg-gray-50 rounded-lg text-sm outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent focus:bg-white transition-all duration-150';
 
 function getUsuarioId(): string {
     return sessionStorage.getItem('currentUser') ?? '';
-}
-
-function formatFecha(isoDate: string): string {
-    const [y, m, d] = isoDate.slice(0, 10).split('-');
-    return `${d}/${m}/${y}`;
 }
 
 const Rutina: React.FC<RutinaProps> = ({ onLogout, onNavigate }) => {
@@ -43,16 +31,10 @@ const Rutina: React.FC<RutinaProps> = ({ onLogout, onNavigate }) => {
     const [loading, setLoading] = useState(true);
     const [colapsados, setColapsados] = useState<Record<string, boolean>>({});
 
-    // Modal editar peso
     const [modalEditar, setModalEditar] = useState<Ejercicio | null>(null);
     const [inputPeso, setInputPeso] = useState('');
     const [guardando, setGuardando] = useState(false);
     const [guardadoOk, setGuardadoOk] = useState(false);
-
-    // Modal historial
-    const [modalHistorial, setModalHistorial] = useState<Ejercicio | null>(null);
-    const [historial, setHistorial] = useState<RegistroPeso[]>([]);
-    const [loadingHistorial, setLoadingHistorial] = useState(false);
 
     const fetchData = useCallback(async () => {
         setLoading(true);
@@ -89,20 +71,6 @@ const Rutina: React.FC<RutinaProps> = ({ onLogout, onNavigate }) => {
         setModalEditar(ej);
     };
 
-    const abrirHistorial = async (ej: Ejercicio) => {
-        setModalHistorial(ej);
-        setLoadingHistorial(true);
-        try {
-            const res = await fetch(
-                `${API_URL}/rutina/historial?usuarioId=${encodeURIComponent(usuarioId)}&ejercicioId=${ej.idEjercicio}`,
-            );
-            const data: RegistroPeso[] = res.ok ? await res.json() : [];
-            setHistorial(data);
-        } finally {
-            setLoadingHistorial(false);
-        }
-    };
-
     const handleGuardar = async () => {
         if (!modalEditar) return;
         const peso = parseFloat(inputPeso.replace(',', '.'));
@@ -125,8 +93,7 @@ const Rutina: React.FC<RutinaProps> = ({ onLogout, onNavigate }) => {
     };
 
     const handleInputPeso = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const val = e.target.value.replace(/[^0-9.,]/g, '');
-        setInputPeso(val);
+        setInputPeso(e.target.value.replace(/[^0-9.,]/g, ''));
     };
 
     return (
@@ -135,10 +102,7 @@ const Rutina: React.FC<RutinaProps> = ({ onLogout, onNavigate }) => {
                 <div className="w-full max-w-2xl">
                     <h2 className="text-xl font-bold text-gray-900 mb-5">Entrenamiento</h2>
 
-                    {loading && (
-                        <p className="text-gray-500 text-sm">Cargando ejercicios...</p>
-                    )}
-
+                    {loading && <p className="text-gray-500 text-sm">Cargando ejercicios...</p>}
                     {!loading && ejercicios.length === 0 && (
                         <p className="text-gray-400 text-sm">No hay ejercicios cargados.</p>
                     )}
@@ -179,21 +143,12 @@ const Rutina: React.FC<RutinaProps> = ({ onLogout, onNavigate }) => {
                                                                     : <span className="text-gray-300 font-normal">— kg</span>
                                                                 }
                                                             </span>
-
                                                             <button
                                                                 onClick={() => abrirEditar(ej)}
                                                                 title="Editar peso"
                                                                 className="p-1.5 rounded-lg text-gray-400 hover:text-primary-600 hover:bg-primary-50 transition-colors duration-150"
                                                             >
                                                                 <Pencil size={14} />
-                                                            </button>
-
-                                                            <button
-                                                                onClick={() => abrirHistorial(ej)}
-                                                                title="Ver progreso"
-                                                                className="p-1.5 rounded-lg text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 transition-colors duration-150"
-                                                            >
-                                                                <TrendingUp size={14} />
                                                             </button>
                                                         </div>
                                                     </div>
@@ -208,7 +163,6 @@ const Rutina: React.FC<RutinaProps> = ({ onLogout, onNavigate }) => {
                 </div>
             </AppShell>
 
-            {/* Modal editar peso */}
             {modalEditar && (
                 <div
                     onClick={() => setModalEditar(null)}
@@ -220,10 +174,7 @@ const Rutina: React.FC<RutinaProps> = ({ onLogout, onNavigate }) => {
                     >
                         <div className="flex items-start justify-between mb-1">
                             <h3 className="text-base font-bold text-gray-900">Editar Peso</h3>
-                            <button
-                                onClick={() => setModalEditar(null)}
-                                className="text-gray-400 hover:text-gray-700 transition-colors"
-                            >
+                            <button onClick={() => setModalEditar(null)} className="text-gray-400 hover:text-gray-700 transition-colors">
                                 <X size={20} />
                             </button>
                         </div>
@@ -256,73 +207,13 @@ const Rutina: React.FC<RutinaProps> = ({ onLogout, onNavigate }) => {
                             <button
                                 onClick={handleGuardar}
                                 disabled={guardando || !inputPeso}
-                                className={`flex-1 py-2.5 rounded-xl text-white text-sm font-semibold transition-all duration-150 active:scale-[0.98]
-                                    ${guardando || !inputPeso
-                                        ? 'bg-gray-300 cursor-not-allowed'
-                                        : 'bg-emerald-500 hover:bg-emerald-600 shadow-sm'
-                                    }`}
+                                className={`flex-1 py-2.5 rounded-xl text-white text-sm font-semibold transition-all duration-150 active:scale-[0.98] ${
+                                    guardando || !inputPeso ? 'bg-gray-300 cursor-not-allowed' : 'bg-emerald-500 hover:bg-emerald-600 shadow-sm'
+                                }`}
                             >
                                 {guardando ? 'Guardando...' : 'Guardar'}
                             </button>
                         </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Modal historial */}
-            {modalHistorial && (
-                <div
-                    onClick={() => setModalHistorial(null)}
-                    className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center z-[1000] p-4 animate-fadeIn"
-                >
-                    <div
-                        onClick={e => e.stopPropagation()}
-                        className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl animate-popIn max-h-[80vh] flex flex-col"
-                    >
-                        <div className="flex items-start justify-between mb-1">
-                            <h3 className="text-base font-bold text-gray-900">Tu Progreso</h3>
-                            <button
-                                onClick={() => setModalHistorial(null)}
-                                className="text-gray-400 hover:text-gray-700 transition-colors"
-                            >
-                                <X size={20} />
-                            </button>
-                        </div>
-                        <p className="text-sm text-gray-500 mb-4">{modalHistorial.nombre}</p>
-
-                        <div className="overflow-y-auto flex-1 -mx-1 px-1">
-                            {loadingHistorial && (
-                                <p className="text-sm text-gray-400 text-center py-6">Cargando...</p>
-                            )}
-                            {!loadingHistorial && historial.length === 0 && (
-                                <p className="text-sm text-gray-400 text-center py-6">Sin registros todavía.</p>
-                            )}
-                            {!loadingHistorial && historial.length > 0 && (
-                                <div className="flex flex-col gap-2">
-                                    {[...historial].reverse().map(r => (
-                                        <div
-                                            key={r.id}
-                                            className="flex items-center justify-between px-3 py-2.5 bg-gray-50 rounded-xl"
-                                        >
-                                            <div className="flex items-center gap-2 text-gray-500 text-sm">
-                                                <Calendar size={13} />
-                                                <span>{formatFecha(r.fecha)}</span>
-                                            </div>
-                                            <span className="text-emerald-600 font-bold text-[15px]">
-                                                {String(r.peso).replace('.', ',')} kg
-                                            </span>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-
-                        <button
-                            onClick={() => setModalHistorial(null)}
-                            className="mt-4 w-full py-2.5 rounded-xl border border-gray-200 text-gray-700 text-sm font-medium hover:bg-gray-50 transition-colors"
-                        >
-                            Cerrar
-                        </button>
                     </div>
                 </div>
             )}
