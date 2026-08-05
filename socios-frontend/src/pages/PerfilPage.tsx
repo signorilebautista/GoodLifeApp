@@ -60,7 +60,7 @@ export default function PerfilPage() {
     // Progreso
     const [ejercicios, setEjercicios] = useState<EjercicioProgreso[]>([])
     const [loadingProgreso, setLoadingProgreso] = useState(true)
-    // historial cargado por ejercicio: id → registros (null = no cargado aún)
+    const [errorProgreso, setErrorProgreso] = useState<string | null>(null)
     const [historial, setHistorial] = useState<Record<number, RegistroPeso[] | null>>({})
     const [expandido, setExpandido] = useState<number | null>(null)
     const [loadingHistorial, setLoadingHistorial] = useState(false)
@@ -72,10 +72,21 @@ export default function PerfilPage() {
 
     const fetchProgreso = useCallback(async (dni: string) => {
         setLoadingProgreso(true)
+        setErrorProgreso(null)
         try {
-            const res = await fetch(`${API_URL}/rutina/ejercicios-con-historial?usuarioId=${encodeURIComponent(dni)}`)
-            const data: EjercicioProgreso[] = res.ok ? await res.json() : []
+            const url = `${API_URL}/rutina/ejercicios-con-historial?usuarioId=${encodeURIComponent(dni)}`
+            const res = await fetch(url)
+            if (!res.ok) {
+                const text = await res.text().catch(() => res.status.toString())
+                setErrorProgreso(`Error ${res.status}: ${text}`)
+                setEjercicios([])
+                return
+            }
+            const data: EjercicioProgreso[] = await res.json()
             setEjercicios(data)
+        } catch (e: any) {
+            setErrorProgreso(e?.message ?? 'Error de red')
+            setEjercicios([])
         } finally {
             setLoadingProgreso(false)
         }
@@ -84,7 +95,7 @@ export default function PerfilPage() {
     useEffect(() => {
         const raw = localStorage.getItem('socio')
         const dni = raw ? JSON.parse(raw).DNI : null
-        if (dni) fetchProgreso(dni)
+        if (dni) fetchProgreso(String(dni))
         else setLoadingProgreso(false)
     }, [fetchProgreso])
 
@@ -104,6 +115,10 @@ export default function PerfilPage() {
             const res = await fetch(`${API_URL}/rutina/historial?usuarioId=${encodeURIComponent(dni)}&ejercicioId=${ej.idEjercicio}`)
             const data: RegistroPeso[] = res.ok ? await res.json() : []
             setHistorial(prev => ({ ...prev, [ej.idEjercicio]: data }))
+            console.log(`[Historial] ejercicio ${ej.idEjercicio}:`, data)
+        } catch (e) {
+            console.error('[Historial] error:', e)
+            setHistorial(prev => ({ ...prev, [ej.idEjercicio]: [] }))
         } finally {
             setLoadingHistorial(false)
         }
@@ -247,7 +262,11 @@ export default function PerfilPage() {
                         </div>
                     )}
 
-                    {!loadingProgreso && ejercicios.length === 0 && (
+                    {!loadingProgreso && errorProgreso && (
+                        <p className="text-red-400 text-xs text-center py-4 break-all">{errorProgreso}</p>
+                    )}
+
+                    {!loadingProgreso && !errorProgreso && ejercicios.length === 0 && (
                         <p className="text-white/40 text-sm text-center py-4">
                             Todavía no registraste ningún peso. Hacelo desde la sección Entrenamiento.
                         </p>
