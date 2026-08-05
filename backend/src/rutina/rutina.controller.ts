@@ -24,4 +24,9 @@ export class RutinaController {
   getPesosActuales(@Query('usuarioId') usuarioId: string) {
     return this.service.getPesosActuales(usuarioId);
   }
+
+  @Get('ejercicios-con-historial')
+  getEjerciciosConHistorial(@Query('usuarioId') usuarioId: string) {
+    return this.service.getEjerciciosConHistorial(usuarioId);
+  }
 }

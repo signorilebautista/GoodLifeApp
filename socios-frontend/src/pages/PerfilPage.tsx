@@ -73,23 +73,9 @@ export default function PerfilPage() {
     const fetchProgreso = useCallback(async (dni: string) => {
         setLoadingProgreso(true)
         try {
-            const res = await fetch(`${API_URL}/socios/${dni}/plan`)
-            const plan = res.ok ? await res.json() : null
-            if (!plan?.days) { setEjercicios([]); return }
-
-            const vistos = new Set<number>()
-            const lista: EjercicioProgreso[] = []
-            for (const day of plan.days) {
-                for (const block of day.blocks ?? []) {
-                    for (const ex of block.exercises ?? []) {
-                        if (ex.idEjercicio && ex.peso != null && !vistos.has(ex.idEjercicio)) {
-                            vistos.add(ex.idEjercicio)
-                            lista.push({ idEjercicio: ex.idEjercicio, nombre: ex.name, pesoActual: ex.peso })
-                        }
-                    }
-                }
-            }
-            setEjercicios(lista)
+            const res = await fetch(`${API_URL}/rutina/ejercicios-con-historial?usuarioId=${encodeURIComponent(dni)}`)
+            const data: EjercicioProgreso[] = res.ok ? await res.json() : []
+            setEjercicios(data)
         } finally {
             setLoadingProgreso(false)
         }
