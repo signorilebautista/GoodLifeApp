@@ -116,19 +116,19 @@ export default function EntrenamientoPage() {
         if (!dni) return
         setGuardando(true)
         try {
-            // Actualiza el peso actual en el plan JSON
-            const r1 = await fetch(`${API_URL}/socios/${dni}/ejercicio-peso`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ idEjercicio: modalPeso.idEjercicio, peso }),
-            })
-            // Guarda entrada en el historial
-            const r2 = await fetch(`${API_URL}/rutina/peso`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ usuarioId: dni, ejercicioId: modalPeso.idEjercicio, peso }),
-            })
-            if (r1.ok && r2.ok) {
+            const [r1, r2] = await Promise.all([
+                fetch(`${API_URL}/socios/${dni}/ejercicio-peso`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ idEjercicio: modalPeso.idEjercicio, peso }),
+                }),
+                fetch(`${API_URL}/rutina/peso`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ usuarioId: dni, ejercicioId: modalPeso.idEjercicio, peso }),
+                }),
+            ])
+            if (r1.ok || r2.ok) {
                 setPesosActuales(prev => ({ ...prev, [modalPeso.idEjercicio]: peso }))
                 setGuardadoOk(true)
                 setTimeout(() => setModalPeso(null), 800)

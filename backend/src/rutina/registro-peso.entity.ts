@@ -1,4 +1,4 @@
-import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity('RegistrosPeso')
 export class RegistroPeso {
@@ -14,6 +14,6 @@ export class RegistroPeso {
   @Column({ type: 'numeric', precision: 6, scale: 2 })
   peso: number;
 
-  @CreateDateColumn({ name: 'fecha', type: 'date' })
+  @Column({ type: 'date', default: () => 'CURRENT_DATE' })
   fecha: string;
 }
