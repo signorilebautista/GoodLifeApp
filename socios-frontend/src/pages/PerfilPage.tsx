@@ -29,10 +29,21 @@ function comprimirImagen(file: File): Promise<string> {
     })
 }
 
-interface EjercicioConPeso {
+interface RegistroPeso {
+    id: number
+    peso: number
+    fecha: string
+}
+
+interface EjercicioProgreso {
     idEjercicio: number
     nombre: string
-    peso: number
+    pesoActual: number
+}
+
+function formatFecha(isoDate: string): string {
+    const [y, m, d] = isoDate.slice(0, 10).split('-')
+    return `${d}/${m}/${y}`
 }
 
 export default function PerfilPage() {
@@ -46,8 +57,13 @@ export default function PerfilPage() {
     const fileInputRef = useRef<HTMLInputElement>(null)
     const cameraInputRef = useRef<HTMLInputElement>(null)
 
-    const [progreso, setProgreso] = useState<EjercicioConPeso[]>([])
+    // Progreso
+    const [ejercicios, setEjercicios] = useState<EjercicioProgreso[]>([])
     const [loadingProgreso, setLoadingProgreso] = useState(true)
+    // historial cargado por ejercicio: id → registros (null = no cargado aún)
+    const [historial, setHistorial] = useState<Record<number, RegistroPeso[] | null>>({})
+    const [expandido, setExpandido] = useState<number | null>(null)
+    const [loadingHistorial, setLoadingHistorial] = useState(false)
 
     useEffect(() => {
         const raw = localStorage.getItem('socio')
@@ -59,21 +75,21 @@ export default function PerfilPage() {
         try {
             const res = await fetch(`${API_URL}/socios/${dni}/plan`)
             const plan = res.ok ? await res.json() : null
-            if (!plan?.days) { setProgreso([]); return }
+            if (!plan?.days) { setEjercicios([]); return }
 
             const vistos = new Set<number>()
-            const lista: EjercicioConPeso[] = []
+            const lista: EjercicioProgreso[] = []
             for (const day of plan.days) {
                 for (const block of day.blocks ?? []) {
                     for (const ex of block.exercises ?? []) {
                         if (ex.idEjercicio && ex.peso != null && !vistos.has(ex.idEjercicio)) {
                             vistos.add(ex.idEjercicio)
-                            lista.push({ idEjercicio: ex.idEjercicio, nombre: ex.name, peso: ex.peso })
+                            lista.push({ idEjercicio: ex.idEjercicio, nombre: ex.name, pesoActual: ex.peso })
                         }
                     }
                 }
             }
-            setProgreso(lista)
+            setEjercicios(lista)
         } finally {
             setLoadingProgreso(false)
         }
@@ -85,6 +101,27 @@ export default function PerfilPage() {
         if (dni) fetchProgreso(dni)
         else setLoadingProgreso(false)
     }, [fetchProgreso])
+
+    const toggleEjercicio = async (ej: EjercicioProgreso) => {
+        if (expandido === ej.idEjercicio) {
+            setExpandido(null)
+            return
+        }
+        setExpandido(ej.idEjercicio)
+
+        // Si ya cargamos el historial, no volver a fetchear
+        if (historial[ej.idEjercicio] !== undefined) return
+
+        const dni = (() => { try { return JSON.parse(localStorage.getItem('socio') ?? '{}').DNI ?? '' } catch { return '' } })()
+        setLoadingHistorial(true)
+        try {
+            const res = await fetch(`${API_URL}/rutina/historial?usuarioId=${encodeURIComponent(dni)}&ejercicioId=${ej.idEjercicio}`)
+            const data: RegistroPeso[] = res.ok ? await res.json() : []
+            setHistorial(prev => ({ ...prev, [ej.idEjercicio]: data }))
+        } finally {
+            setLoadingHistorial(false)
+        }
+    }
 
     const nombreCompleto = [socio.nombre, socio.apellido].filter(Boolean).join(' ') || '—'
 
@@ -138,6 +175,7 @@ export default function PerfilPage() {
             <div className="relative z-10 px-6 pt-12">
                 <h1 className="text-3xl font-bold text-white mb-6 pl-1 tracking-tight drop-shadow-lg">Perfil</h1>
 
+                {/* Card principal */}
                 <div className="rounded-3xl bg-white/10 backdrop-blur-2xl border border-white/20 shadow-2xl p-6 mb-6 relative animate-fade-in">
 
                     {/* Foto */}
@@ -188,68 +226,26 @@ export default function PerfilPage() {
                     {/* Información Personal */}
                     <div className="mb-6">
                         <h2 className="text-cyan-400 font-bold text-xs uppercase tracking-widest mb-2">Información Personal</h2>
-                        <div className="h-px w-full bg-white/15 mb-4"></div>
+                        <div className="h-px w-full bg-white/15 mb-4" />
                         <dl className="space-y-2 text-sm">
-                            <div className="flex gap-2">
-                                <dt className={textDark}>Nombre:</dt>
-                                <dd className={textGray}>{nombreCompleto}</dd>
-                            </div>
-                            <div className="flex gap-2">
-                                <dt className={textDark}>Mail:</dt>
-                                <dd className={textGray}>{socio.mail || '—'}</dd>
-                            </div>
-                            <div className="flex gap-2">
-                                <dt className={textDark}>DNI:</dt>
-                                <dd className={textGray}>{socio.DNI || '—'}</dd>
-                            </div>
-                            {socio.contacto && (
-                                <div className="flex gap-2">
-                                    <dt className={textDark}>Contacto:</dt>
-                                    <dd className={textGray}>{socio.contacto}</dd>
-                                </div>
-                            )}
-                            {socio.direccion && (
-                                <div className="flex gap-2">
-                                    <dt className={textDark}>Dirección:</dt>
-                                    <dd className={textGray}>{socio.direccion}</dd>
-                                </div>
-                            )}
+                            <div className="flex gap-2"><dt className={textDark}>Nombre:</dt><dd className={textGray}>{nombreCompleto}</dd></div>
+                            <div className="flex gap-2"><dt className={textDark}>Mail:</dt><dd className={textGray}>{socio.mail || '—'}</dd></div>
+                            <div className="flex gap-2"><dt className={textDark}>DNI:</dt><dd className={textGray}>{socio.DNI || '—'}</dd></div>
+                            {socio.contacto && <div className="flex gap-2"><dt className={textDark}>Contacto:</dt><dd className={textGray}>{socio.contacto}</dd></div>}
+                            {socio.direccion && <div className="flex gap-2"><dt className={textDark}>Dirección:</dt><dd className={textGray}>{socio.direccion}</dd></div>}
                         </dl>
                     </div>
 
                     {/* Membresía */}
                     <div>
                         <h2 className="text-cyan-400 font-bold text-xs uppercase tracking-widest mb-2">Membresía</h2>
-                        <div className="h-px w-full bg-white/15 mb-4"></div>
+                        <div className="h-px w-full bg-white/15 mb-4" />
                         <dl className="space-y-2 text-sm">
-                            <div className="flex gap-2">
-                                <dt className={textDark}>Clases restantes:</dt>
-                                <dd className={textGray}>{socio.clasesRestantes ?? '—'}</dd>
-                            </div>
-                            {socio.nombreMembresia && (
-                                <div className="flex gap-2">
-                                    <dt className={textDark}>Membresía:</dt>
-                                    <dd className={textGray}>{socio.nombreMembresia}</dd>
-                                </div>
-                            )}
-                            {socio.profesor && (
-                                <div className="flex gap-2">
-                                    <dt className={textDark}>Profesor:</dt>
-                                    <dd className={textGray}>{socio.profesor}</dd>
-                                </div>
-                            )}
-                            {socio.vigencia && (
-                                <div className="flex gap-2">
-                                    <dt className={textDark}>Vigencia:</dt>
-                                    <dd className={textGray}>{socio.vigencia}</dd>
-                                </div>
-                            )}
-                            {socio.ultimaClaseAsistida && (
-                                <div className="flex gap-2">
-                                    <dt className={textDark}>Última Clase Asistida:</dt>
-                                    <dd className={textGray}>{socio.ultimaClaseAsistida}</dd>
-                                </div>
-                            )}
+                            <div className="flex gap-2"><dt className={textDark}>Clases restantes:</dt><dd className={textGray}>{socio.clasesRestantes ?? '—'}</dd></div>
+                            {socio.nombreMembresia && <div className="flex gap-2"><dt className={textDark}>Membresía:</dt><dd className={textGray}>{socio.nombreMembresia}</dd></div>}
+                            {socio.profesor && <div className="flex gap-2"><dt className={textDark}>Profesor:</dt><dd className={textGray}>{socio.profesor}</dd></div>}
+                            {socio.vigencia && <div className="flex gap-2"><dt className={textDark}>Vigencia:</dt><dd className={textGray}>{socio.vigencia}</dd></div>}
+                            {socio.ultimaClaseAsistida && <div className="flex gap-2"><dt className={textDark}>Última Clase Asistida:</dt><dd className={textGray}>{socio.ultimaClaseAsistida}</dd></div>}
                         </dl>
                     </div>
                 </div>
@@ -257,7 +253,7 @@ export default function PerfilPage() {
                 {/* Tu Progreso */}
                 <div className="rounded-3xl bg-white/10 backdrop-blur-2xl border border-white/20 shadow-2xl p-6 mb-6 animate-fade-in">
                     <h2 className="text-cyan-400 font-bold text-xs uppercase tracking-widest mb-2">Tu Progreso</h2>
-                    <div className="h-px w-full bg-white/15 mb-4"></div>
+                    <div className="h-px w-full bg-white/15 mb-4" />
 
                     {loadingProgreso && (
                         <div className="flex justify-center py-6">
@@ -265,22 +261,71 @@ export default function PerfilPage() {
                         </div>
                     )}
 
-                    {!loadingProgreso && progreso.length === 0 && (
+                    {!loadingProgreso && ejercicios.length === 0 && (
                         <p className="text-white/40 text-sm text-center py-4">
                             Todavía no registraste ningún peso. Hacelo desde la sección Entrenamiento.
                         </p>
                     )}
 
-                    {!loadingProgreso && progreso.length > 0 && (
+                    {!loadingProgreso && ejercicios.length > 0 && (
                         <div className="space-y-2">
-                            {progreso.map(ej => (
-                                <div key={ej.idEjercicio} className="flex items-center justify-between px-4 py-3 rounded-2xl border border-white/10 hover:bg-white/5 transition-colors">
-                                    <p className="text-white font-semibold text-sm capitalize">{ej.nombre}</p>
-                                    <span className="text-cyan-400 font-bold text-base">
-                                        {String(ej.peso).replace('.', ',')} kg
-                                    </span>
-                                </div>
-                            ))}
+                            {ejercicios.map(ej => {
+                                const abierto = expandido === ej.idEjercicio
+                                const registros = historial[ej.idEjercicio]
+                                return (
+                                    <div key={ej.idEjercicio} className="rounded-2xl overflow-hidden border border-white/10">
+                                        {/* Fila del ejercicio */}
+                                        <button
+                                            type="button"
+                                            onClick={() => toggleEjercicio(ej)}
+                                            className="w-full flex items-center justify-between px-4 py-3.5 hover:bg-white/5 transition-colors text-left"
+                                        >
+                                            <div>
+                                                <p className="text-white font-semibold text-sm capitalize">{ej.nombre}</p>
+                                                <p className="text-white/40 text-xs mt-0.5">
+                                                    Actual: <span className="text-cyan-400 font-bold">{String(ej.pesoActual).replace('.', ',')} kg</span>
+                                                </p>
+                                            </div>
+                                            <svg
+                                                xmlns="http://www.w3.org/2000/svg"
+                                                className={`h-4 w-4 text-white/40 shrink-0 ml-3 transition-transform duration-200 ${abierto ? 'rotate-180' : ''}`}
+                                                fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"
+                                            >
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                            </svg>
+                                        </button>
+
+                                        {/* Historial */}
+                                        {abierto && (
+                                            <div className="border-t border-white/10 bg-white/5 px-4 py-3">
+                                                {loadingHistorial && registros === undefined ? (
+                                                    <div className="flex justify-center py-3">
+                                                        <span className="w-5 h-5 border-2 border-white/20 border-t-cyan-400 rounded-full animate-spin" />
+                                                    </div>
+                                                ) : !registros || registros.length === 0 ? (
+                                                    <p className="text-white/30 text-xs text-center py-2">Sin registros anteriores.</p>
+                                                ) : (
+                                                    <div className="space-y-2">
+                                                        {[...registros].reverse().map(r => (
+                                                            <div key={r.id} className="flex items-center justify-between">
+                                                                <div className="flex items-center gap-2 text-white/50 text-sm">
+                                                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                                                    </svg>
+                                                                    <span>{formatFecha(r.fecha)}</span>
+                                                                </div>
+                                                                <span className="text-cyan-400 font-bold text-sm">
+                                                                    {String(r.peso).replace('.', ',')} kg
+                                                                </span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                )
+                            })}
                         </div>
                     )}
                 </div>
