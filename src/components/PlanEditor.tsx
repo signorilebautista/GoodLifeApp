@@ -122,6 +122,7 @@ const PlanEditor: React.FC<PlanEditorProps> = ({ days, setDays, ejerciciosDB }) 
     const [exReps, setExReps] = useState('12');
     const [exSeries, setExSeries] = useState('4');
     const [exSearch, setExSearch] = useState('');
+    const [exShowSuggestions, setExShowSuggestions] = useState(false);
 
     // Si `days` cambia desde afuera (se cargó el plan de otro socio, o se aplicó una
     // plantilla) y el día seleccionado ya no existe en la lista nueva, seleccionamos
@@ -143,10 +144,13 @@ const PlanEditor: React.FC<PlanEditorProps> = ({ days, setDays, ejerciciosDB }) 
     const zonas = Array.from(
         new Map(ejerciciosDB.filter(e => e.zona).map(e => [e.zona!.idZona, e.zona!])).values()
     ).sort((a, b) => a.nombre.localeCompare(b.nombre));
-    const ejerciciosFiltrados = (exZonaId
-        ? ejerciciosDB.filter(e => e.zona && String(e.zona.idZona) === exZonaId)
-        : []
-    ).filter(e => e.nombre.toLowerCase().includes(exSearch.trim().toLowerCase()));
+    const exSearchActive = exSearch.trim().length > 0;
+    const ejerciciosFiltrados = ejerciciosDB.filter(e => {
+        if (exZonaId && (!e.zona || String(e.zona.idZona) !== exZonaId)) return false;
+        const q = exSearch.trim().toLowerCase();
+        if (!q) return exZonaId !== '';
+        return e.nombre.toLowerCase().includes(q) || (e.zona?.nombre.toLowerCase().includes(q) ?? false);
+    });
 
     const addDay = () => {
         const newDay: DayPlan = { uid: nextUid(), label: `Día ${days.length + 1}`, blocks: [{ uid: nextUid(), name: 'Bloque 1', exercises: [] }] };
@@ -194,7 +198,14 @@ const PlanEditor: React.FC<PlanEditorProps> = ({ days, setDays, ejerciciosDB }) 
         setExReps('12');
         setExSeries('4');
         setExSearch('');
+        setExShowSuggestions(false);
         setShowExModal(true);
+    };
+
+    const selectEjercicio = (ej: EjercicioDB) => {
+        setExEjercicioId(String(ej.idEjercicio));
+        setExSearch(ej.nombre);
+        setExShowSuggestions(false);
     };
 
     const confirmAddExercise = () => {
@@ -329,7 +340,7 @@ const PlanEditor: React.FC<PlanEditorProps> = ({ days, setDays, ejerciciosDB }) 
 
                         <div className="mb-4">
                             <label className={labelClass}>Zona muscular</label>
-                            <select value={exZonaId} onChange={e => { setExZonaId(e.target.value); setExEjercicioId(''); setExSearch(''); }} className={inputClass}>
+                            <select value={exZonaId} onChange={e => { setExZonaId(e.target.value); setExEjercicioId(''); setExSearch(''); setExShowSuggestions(true); }} className={inputClass}>
                                 <option value="">Seleccionar zona...</option>
                                 {zonas.map(z => (
                                     <option key={z.idZona} value={z.idZona}>{z.nombre}</option>
@@ -342,33 +353,45 @@ const PlanEditor: React.FC<PlanEditorProps> = ({ days, setDays, ejerciciosDB }) 
                             )}
                         </div>
 
-                        {exZonaId && (
-                            <div className="mb-4">
-                                <label className={labelClass}>Buscar ejercicio</label>
-                                <div className="relative">
-                                    <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-                                    <input
-                                        type="text"
-                                        value={exSearch}
-                                        onChange={e => setExSearch(e.target.value)}
-                                        placeholder="Filtrar por nombre..."
-                                        className={`${inputClass} pl-8`}
-                                    />
-                                </div>
-                            </div>
-                        )}
-
                         <div className="mb-4">
                             <label className={labelClass}>Ejercicio</label>
-                            <select value={exEjercicioId} onChange={e => setExEjercicioId(e.target.value)} className={`${inputClass} disabled:opacity-60 disabled:cursor-not-allowed`} disabled={!exZonaId}>
-                                <option value="">{exZonaId ? 'Seleccionar ejercicio...' : 'Primero seleccioná una zona'}</option>
-                                {ejerciciosFiltrados.map(e => (
-                                    <option key={e.idEjercicio} value={e.idEjercicio}>{e.nombre}</option>
-                                ))}
-                            </select>
-                            {exZonaId && ejerciciosFiltrados.length === 0 && (
+                            <div className="relative">
+                                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                                <input
+                                    type="text"
+                                    value={exSearch}
+                                    onChange={e => { setExSearch(e.target.value); setExEjercicioId(''); setExShowSuggestions(true); }}
+                                    onFocus={() => setExShowSuggestions(true)}
+                                    onBlur={() => setTimeout(() => setExShowSuggestions(false), 150)}
+                                    placeholder="Por nombre o zona muscular (ej: inferior)..."
+                                    className={`${inputClass} pl-8`}
+                                />
+                                {exShowSuggestions && (exZonaId || exSearchActive) && (
+                                    <ul className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-xl max-h-52 overflow-y-auto">
+                                        {ejerciciosFiltrados.length === 0 ? (
+                                            <li className="px-4 py-3 text-sm text-gray-400">
+                                                {exSearchActive ? 'Sin resultados para la búsqueda.' : 'No hay ejercicios en esta zona.'}
+                                            </li>
+                                        ) : ejerciciosFiltrados.map(e => (
+                                            <li key={e.idEjercicio}>
+                                                <button
+                                                    type="button"
+                                                    onMouseDown={ev => { ev.preventDefault(); selectEjercicio(e); }}
+                                                    className="w-full text-left px-4 py-2.5 hover:bg-primary-50 transition-colors text-sm flex items-center justify-between gap-3"
+                                                >
+                                                    <span className="text-gray-900">{e.nombre}</span>
+                                                    {!exZonaId && e.zona && (
+                                                        <span className="text-xs text-gray-400 shrink-0">{e.zona.nombre}</span>
+                                                    )}
+                                                </button>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                )}
+                            </div>
+                            {!exZonaId && !exSearchActive && (
                                 <p className="text-xs text-gray-500 mt-1.5">
-                                    {exSearch.trim() ? 'Sin resultados para la búsqueda.' : 'No hay ejercicios en esta zona.'}
+                                    Elegí una zona o escribí para buscar.
                                 </p>
                             )}
                         </div>
