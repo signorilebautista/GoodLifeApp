@@ -60,6 +60,11 @@ const prefetchers: Record<string, () => Promise<unknown>> = {
         `${API_URL}/turnero/sedes`,
         `${API_URL}/turnero/profesores`,
     ]),
+    '/comentarios': () => safeAll([`${API_URL}/comentarios`]),
+    '/plantillas': () => safeAll([
+        `${API_URL}/plantillas`,
+        `${API_URL}/ejercicios`,
+    ]),
 };
 
 export const prefetchMenuPrincipal = () => prefetchers['/menu-principal']();

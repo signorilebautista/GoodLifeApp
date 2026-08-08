@@ -67,3 +67,41 @@ CREATE TABLE IF NOT EXISTS "ExamenSocio" (
   "examen"    JSONB NOT NULL,
   "updatedAt" TIMESTAMP NOT NULL DEFAULT NOW()
 );
+
+-- 9. Comentarios del socio a los profesores (solo lectura desde el panel)
+CREATE TABLE IF NOT EXISTS "Comentarios" (
+  "id"        SERIAL PRIMARY KEY,
+  "dniSocio"  VARCHAR NOT NULL,
+  "texto"     TEXT NOT NULL,
+  "createdAt" TIMESTAMP NOT NULL DEFAULT NOW(),
+  "leido"     BOOLEAN NOT NULL DEFAULT false,
+  "leidoEn"   TIMESTAMP
+);
+
+-- 10. Plantillas de rutinas reutilizables (mismo shape jsonb que PlanSocio.plan)
+CREATE TABLE IF NOT EXISTS "PlantillasEjercicios" (
+  "id"          SERIAL PRIMARY KEY,
+  "nombre"      VARCHAR NOT NULL,
+  "descripcion" TEXT,
+  "plan"        JSONB NOT NULL,
+  "createdAt"   TIMESTAMP NOT NULL DEFAULT NOW(),
+  "updatedAt"   TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+-- 11. Notificaciones push: suscripciones del navegador y log de envíos de vencimiento
+CREATE TABLE IF NOT EXISTS "PushSubscriptions" (
+  "id"        SERIAL PRIMARY KEY,
+  "dniSocio"  VARCHAR NOT NULL,
+  "endpoint"  TEXT NOT NULL UNIQUE,
+  "p256dh"    VARCHAR NOT NULL,
+  "auth"      VARCHAR NOT NULL,
+  "createdAt" TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS "PushNotificacionesEnviadas" (
+  "id"         SERIAL PRIMARY KEY,
+  "dniSocio"   VARCHAR NOT NULL,
+  "tipo"       VARCHAR NOT NULL,
+  "fechaEnvio" DATE NOT NULL,
+  UNIQUE ("dniSocio", "tipo", "fechaEnvio")
+);

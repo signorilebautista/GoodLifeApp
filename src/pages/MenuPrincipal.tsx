@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Info, TrendingDown, TrendingUp, UserCheck, LogIn } from 'lucide-react';
+import { Info, TrendingDown, TrendingUp, UserCheck, LogIn, MessageSquare } from 'lucide-react';
 import { startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, format, isSameMonth, isToday } from 'date-fns';
 import AppShell from '../components/AppShell';
 import type { IngresoHistorialItem } from './Ingreso';
@@ -25,6 +25,7 @@ const MenuPrincipal: React.FC<MenuPrincipalProps> = ({ onLogout, onNavigate }) =
     const [visitasMes, setVisitasMes] = useState<number | null>(null);
     const [bajasMes, setBajasMes] = useState<number | null>(null);
     const [proxVencimientos, setProxVencimientos] = useState<number | null>(null);
+    const [comentariosNoLeidos, setComentariosNoLeidos] = useState<number | null>(null);
 
     useEffect(() => {
         fetch(`${API_URL}/socios`)
@@ -39,6 +40,11 @@ const MenuPrincipal: React.FC<MenuPrincipalProps> = ({ onLogout, onNavigate }) =
                 setProxVencimientos(count);
             })
             .catch(() => setProxVencimientos(null));
+
+        fetch(`${API_URL}/comentarios?leido=false`)
+            .then((res) => (res.ok ? res.json() : []))
+            .then((data: unknown[]) => setComentariosNoLeidos(data.length))
+            .catch(() => setComentariosNoLeidos(null));
 
         const hoy = new Date();
         const desde = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-01`;
@@ -60,6 +66,7 @@ const MenuPrincipal: React.FC<MenuPrincipalProps> = ({ onLogout, onNavigate }) =
         { title: 'Visitas del mes', value: visitasMes !== null ? String(visitasMes) : '-', icon: TrendingUp, accent: 'from-emerald-500 to-emerald-600', link: '/estadisticas' },
         { title: 'Prox. vencimientos', value: proxVencimientos !== null ? String(proxVencimientos) : '-', icon: Info, accent: 'from-amber-500 to-amber-600', link: '/vencimientos' },
         { title: 'Bajas del mes', value: bajasMes !== null ? String(bajasMes) : '-', icon: TrendingDown, accent: 'from-accent-red to-red-600', link: '/estadisticas' },
+        { title: 'Comentarios sin leer', value: comentariosNoLeidos !== null ? String(comentariosNoLeidos) : '-', icon: MessageSquare, accent: 'from-sky-500 to-sky-600', link: '/comentarios' },
     ];
 
     const today = new Date();

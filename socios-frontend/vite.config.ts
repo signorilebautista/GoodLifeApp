@@ -44,6 +44,9 @@ export default defineConfig({
         clientsClaim: true,
         cleanupOutdatedCaches: true,
         globPatterns: ['**/*.{js,css,html,ico,png,svg,jpg,jpeg,webp}'],
+        // Inyecta el manejo de notificaciones push (self.addEventListener('push', ...))
+        // en el mismo service worker que genera Workbox, sin tocar su lógica de cacheo.
+        importScripts: ['push-sw.js'],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,

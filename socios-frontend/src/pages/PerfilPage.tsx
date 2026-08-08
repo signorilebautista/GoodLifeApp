@@ -2,8 +2,10 @@ import { useState, useEffect, useRef, useCallback, type ChangeEvent } from 'reac
 import Navbar from '../components/Navbar'
 import logoGoodLife from '../assets/logo-goodlife.png'
 import backgroundGym from '../assets/background-gym.jpg'
+import { urlBase64ToUint8Array } from '../utils/push'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'
+const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY || ''
 const FOTO_MAX_SIZE = 400
 
 function comprimirImagen(file: File): Promise<string> {
@@ -41,6 +43,13 @@ interface EjercicioProgreso {
     pesoActual: number
 }
 
+interface Comentario {
+    id: number
+    texto: string
+    createdAt: string
+    leido: boolean
+}
+
 function formatFecha(isoDate: string): string {
     const [y, m, d] = isoDate.slice(0, 10).split('-')
     return `${d}/${m}/${y}`
@@ -64,6 +73,19 @@ export default function PerfilPage() {
     const [historial, setHistorial] = useState<Record<number, RegistroPeso[] | null>>({})
     const [expandido, setExpandido] = useState<number | null>(null)
     const [loadingHistorial, setLoadingHistorial] = useState(false)
+
+    // Comentarios
+    const [comentarios, setComentarios] = useState<Comentario[]>([])
+    const [loadingComentarios, setLoadingComentarios] = useState(true)
+    const [nuevoComentario, setNuevoComentario] = useState('')
+    const [enviandoComentario, setEnviandoComentario] = useState(false)
+    const [comentarioError, setComentarioError] = useState('')
+
+    // Notificaciones push
+    const pushSoportado = typeof window !== 'undefined' && 'serviceWorker' in navigator && 'PushManager' in window && !!VAPID_PUBLIC_KEY
+    const [pushActivo, setPushActivo] = useState(false)
+    const [pushLoading, setPushLoading] = useState(false)
+    const [pushError, setPushError] = useState('')
 
     useEffect(() => {
         const raw = localStorage.getItem('socio')
@@ -98,6 +120,83 @@ export default function PerfilPage() {
         if (dni) fetchProgreso(String(dni))
         else setLoadingProgreso(false)
     }, [fetchProgreso])
+
+    const fetchComentarios = useCallback(async (dni: string) => {
+        setLoadingComentarios(true)
+        try {
+            const res = await fetch(`${API_URL}/comentarios?dniSocio=${encodeURIComponent(dni)}`)
+            setComentarios(res.ok ? await res.json() : [])
+        } catch {
+            setComentarios([])
+        } finally {
+            setLoadingComentarios(false)
+        }
+    }, [])
+
+    useEffect(() => {
+        const raw = localStorage.getItem('socio')
+        const dni = raw ? JSON.parse(raw).DNI : null
+        if (dni) fetchComentarios(String(dni))
+        else setLoadingComentarios(false)
+    }, [fetchComentarios])
+
+    useEffect(() => {
+        if (!pushSoportado) return
+        navigator.serviceWorker.ready
+            .then((reg) => reg.pushManager.getSubscription())
+            .then((sub) => setPushActivo(!!sub))
+            .catch(() => {})
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [])
+
+    const activarPush = async () => {
+        if (!socio.DNI || !pushSoportado) return
+        setPushLoading(true)
+        setPushError('')
+        try {
+            const permiso = await Notification.requestPermission()
+            if (permiso !== 'granted') {
+                setPushError('Necesitamos tu permiso para poder avisarte los vencimientos.')
+                return
+            }
+            const reg = await navigator.serviceWorker.ready
+            const sub = await reg.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY) as BufferSource,
+            })
+            const res = await fetch(`${API_URL}/push/subscribe`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ dniSocio: socio.DNI, subscription: sub.toJSON() }),
+            })
+            if (!res.ok) throw new Error()
+            setPushActivo(true)
+        } catch {
+            setPushError('No se pudieron activar las notificaciones. Probá de nuevo.')
+        } finally {
+            setPushLoading(false)
+        }
+    }
+
+    const enviarComentario = async () => {
+        if (!socio.DNI || !nuevoComentario.trim()) return
+        setEnviandoComentario(true)
+        setComentarioError('')
+        try {
+            const res = await fetch(`${API_URL}/comentarios`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ dniSocio: socio.DNI, texto: nuevoComentario.trim() }),
+            })
+            if (!res.ok) throw new Error()
+            setNuevoComentario('')
+            await fetchComentarios(String(socio.DNI))
+        } catch {
+            setComentarioError('No se pudo enviar el comentario. Probá de nuevo.')
+        } finally {
+            setEnviandoComentario(false)
+        }
+    }
 
     const toggleEjercicio = async (ej: EjercicioProgreso) => {
         if (expandido === ej.idEjercicio) {
@@ -176,6 +275,21 @@ export default function PerfilPage() {
             <div className="relative z-10 px-6 pt-12">
                 <h1 className="text-3xl font-bold text-white mb-6 pl-1 tracking-tight drop-shadow-lg">Perfil</h1>
 
+                {pushSoportado && !pushActivo && (
+                    <div className="rounded-2xl bg-cyan-500/10 border border-cyan-400/30 px-4 py-3 mb-6 flex items-center justify-between gap-3 animate-fade-in">
+                        <p className="text-white/80 text-xs">Activá las notificaciones para que te avisemos cuando se acerque el vencimiento de tu cuota.</p>
+                        <button
+                            type="button"
+                            onClick={activarPush}
+                            disabled={pushLoading}
+                            className="shrink-0 bg-cyan-500 hover:bg-cyan-400 disabled:opacity-50 text-white text-xs font-semibold px-3.5 py-2 rounded-xl transition-colors whitespace-nowrap"
+                        >
+                            {pushLoading ? 'Activando...' : 'Activar'}
+                        </button>
+                    </div>
+                )}
+                {pushError && <p role="alert" className="text-red-300 text-xs font-medium mb-4 -mt-3">{pushError}</p>}
+
                 {/* Card principal */}
                 <div className="rounded-3xl bg-white/10 backdrop-blur-2xl border border-white/20 shadow-2xl p-6 mb-6 relative animate-fade-in">
 
@@ -249,6 +363,56 @@ export default function PerfilPage() {
                             {socio.ultimaClaseAsistida && <div className="flex gap-2"><dt className={textDark}>Última Clase Asistida:</dt><dd className={textGray}>{socio.ultimaClaseAsistida}</dd></div>}
                         </dl>
                     </div>
+                </div>
+
+                {/* Comentarios */}
+                <div className="rounded-3xl bg-white/10 backdrop-blur-2xl border border-white/20 shadow-2xl p-6 mb-6 animate-fade-in">
+                    <h2 className="text-cyan-400 font-bold text-xs uppercase tracking-widest mb-2">Comentarios</h2>
+                    <div className="h-px w-full bg-white/15 mb-4" />
+
+                    <p className="text-white/40 text-xs mb-3">
+                        Dejale un mensaje a tu profesor. Lo va a poder ver desde el panel.
+                    </p>
+
+                    <div className="flex flex-col gap-2">
+                        <textarea
+                            value={nuevoComentario}
+                            onChange={(e) => setNuevoComentario(e.target.value)}
+                            maxLength={1000}
+                            rows={3}
+                            placeholder="Escribí tu comentario..."
+                            className="w-full rounded-xl bg-white/5 border border-white/15 text-white text-sm placeholder-white/30 px-3.5 py-2.5 outline-none focus:border-cyan-400/60 focus:ring-1 focus:ring-cyan-400/60 transition-colors resize-none"
+                        />
+                        <div className="flex items-center justify-end gap-2">
+                            {comentarioError && <p role="alert" className="text-red-300 text-xs font-medium mr-auto">{comentarioError}</p>}
+                            <button
+                                type="button"
+                                onClick={enviarComentario}
+                                disabled={enviandoComentario || !nuevoComentario.trim()}
+                                className="bg-cyan-500 hover:bg-cyan-400 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-semibold px-4 py-2 rounded-xl transition-colors"
+                            >
+                                {enviandoComentario ? 'Enviando...' : 'Enviar'}
+                            </button>
+                        </div>
+                    </div>
+
+                    {loadingComentarios ? (
+                        <div className="flex justify-center py-4">
+                            <span className="w-5 h-5 border-2 border-white/20 border-t-cyan-400 rounded-full animate-spin" />
+                        </div>
+                    ) : comentarios.length > 0 && (
+                        <div className="mt-4 pt-4 border-t border-white/10 space-y-2.5 max-h-56 overflow-y-auto pr-1">
+                            {comentarios.map(c => (
+                                <div key={c.id} className="rounded-xl bg-white/5 border border-white/10 px-3.5 py-2.5">
+                                    <p className="text-white text-sm break-words">{c.texto}</p>
+                                    <div className="flex items-center justify-between mt-1.5">
+                                        <span className="text-white/30 text-[11px]">{formatFecha(c.createdAt)}</span>
+                                        {c.leido && <span className="text-cyan-400/70 text-[11px]">Visto por tu profesor</span>}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
 
                 {/* Tu Progreso */}

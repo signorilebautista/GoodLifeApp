@@ -16,5 +16,6 @@ import { MailModule } from '../mail/mail.module';
   imports: [TypeOrmModule.forFeature([Socio, Membresia, DeudaSocio, PlanSocio, ExamenSocio, LogBaja, LogIngreso, PagoSocio]), MailModule],
   controllers: [SociosController],
   providers: [SociosService],
+  exports: [SociosService],
 })
 export class SociosModule {}

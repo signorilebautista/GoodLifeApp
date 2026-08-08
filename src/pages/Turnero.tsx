@@ -88,6 +88,7 @@ const Turnero: React.FC<TurneroProps> = ({ onLogout, onNavigate }) => {
     const [sedes, setSedes] = useState<Sede[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [notice, setNotice] = useState<string | null>(null);
 
     const [viewMode, setViewMode] = useState<ViewMode>('schedule');
     const [searchFecha, setSearchFecha] = useState(todayISO);
@@ -122,16 +123,18 @@ const Turnero: React.FC<TurneroProps> = ({ onLogout, onNavigate }) => {
         return fallback;
     };
 
-    const fetchTurnos = async (opts: { silent?: boolean } = {}) => {
+    const fetchTurnos = async (opts: { silent?: boolean; fecha?: string; profesor?: string } = {}) => {
         if (!opts.silent) setLoading(true);
         setError(null);
         try {
+            const fecha = opts.fecha ?? searchFecha;
+            const profesor = opts.profesor ?? searchProfesor;
             const params = new URLSearchParams();
-            if (searchFecha) {
-                params.set('desde', searchFecha);
-                params.set('hasta', searchFecha);
+            if (fecha) {
+                params.set('desde', fecha);
+                params.set('hasta', fecha);
             }
-            if (searchProfesor.trim()) params.set('profesor', searchProfesor.trim());
+            if (profesor.trim()) params.set('profesor', profesor.trim());
             const res = await fetch(`${API_URL}/turnero?${params.toString()}`);
             if (!res.ok) throw new Error('No se pudo cargar el turnero');
             setTurnos(await res.json());
@@ -229,39 +232,74 @@ const Turnero: React.FC<TurneroProps> = ({ onLogout, onNavigate }) => {
         setEditMode(true);
     };
 
+    const newFormValid = !!newForm.dia && !!newForm.horario && newForm.idSedes.length > 0;
+
     const handleCreate = async () => {
+        if (!newForm.dia || !newForm.horario) {
+            setNewFormError('Completá la fecha y la hora de entrada.');
+            return;
+        }
         if (newForm.idSedes.length === 0) {
             setNewFormError('Elegí al menos una sede.');
             return;
         }
         setNewFormError(null);
-        try {
-            await Promise.all(
-                newForm.idSedes.map((idSede) =>
-                    fetch(`${API_URL}/turnero`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            dia: newForm.dia,
-                            horario: newForm.horario,
-                            horaFin: newForm.horaFin || undefined,
-                            idSede: Number(idSede),
-                            dniProfesor: newForm.dniProfesor || undefined,
-                            cantReservas: newForm.cantReservas || DEFAULT_CUPOS,
-                        }),
-                    }).then(async (res) => {
-                        if (!res.ok) {
-                            const sedeNombre = sedes.find((s) => String(s.idSede) === idSede)?.nombreSede ?? idSede;
-                            throw new Error(`${sedeNombre}: ${await extractErrorMessage(res, 'no se pudo crear el turno')}`);
-                        }
+
+        const results = await Promise.allSettled(
+            newForm.idSedes.map((idSede) =>
+                fetch(`${API_URL}/turnero`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        dia: newForm.dia,
+                        horario: newForm.horario,
+                        horaFin: newForm.horaFin || undefined,
+                        idSede: Number(idSede),
+                        dniProfesor: newForm.dniProfesor || undefined,
+                        cantReservas: newForm.cantReservas || DEFAULT_CUPOS,
                     }),
-                ),
-            );
-            setShowNewModal(false);
-            setNewForm(emptyNewForm);
-            fetchTurnos();
-        } catch (err) {
-            setNewFormError(err instanceof Error ? err.message : 'Error desconocido');
+                }).then(async (res) => {
+                    if (!res.ok) {
+                        const sedeNombre = sedes.find((s) => String(s.idSede) === idSede)?.nombreSede ?? idSede;
+                        throw new Error(`${sedeNombre}: ${await extractErrorMessage(res, 'no se pudo crear el turno')}`);
+                    }
+                }),
+            ),
+        );
+
+        const fallidas = results.filter((r): r is PromiseRejectedResult => r.status === 'rejected');
+        const exitosas = results.length - fallidas.length;
+
+        if (exitosas === 0) {
+            setNewFormError(fallidas.map((f) => (f.reason instanceof Error ? f.reason.message : 'Error desconocido')).join(' · '));
+            return;
+        }
+
+        // Al menos un turno se creó: cerramos el modal y sincronizamos el filtro
+        // vigente con la fecha/profesor del turno nuevo, para que no quede "invisible"
+        // detrás del buscador (causa raíz del bug: se creaba bien pero no se veía).
+        const nuevaFecha = newForm.dia;
+        let nuevoProfesorFiltro = searchProfesor;
+        if (searchProfesor.trim()) {
+            const profesorCreado = profesores.find((p) => p.dni === newForm.dniProfesor);
+            const nombreCompleto = profesorCreado ? `${profesorCreado.nombre} ${profesorCreado.apellido}`.toLowerCase() : '';
+            if (!newForm.dniProfesor || !nombreCompleto.includes(searchProfesor.trim().toLowerCase())) {
+                nuevoProfesorFiltro = '';
+            }
+        }
+
+        setShowNewModal(false);
+        setNewForm(emptyNewForm);
+        setSearchFecha(nuevaFecha);
+        setSearchProfesor(nuevoProfesorFiltro);
+        await fetchTurnos({ fecha: nuevaFecha, profesor: nuevoProfesorFiltro });
+
+        if (fallidas.length > 0) {
+            setNotice(null);
+            setError(`Se crearon ${exitosas} de ${results.length} turnos. Fallaron: ${fallidas.map((f) => (f.reason instanceof Error ? f.reason.message : 'error desconocido')).join(' · ')}`);
+        } else {
+            setNotice(`Turno creado. Mostrando turnos del ${formatDia(nuevaFecha)}.`);
+            setTimeout(() => setNotice(null), 5000);
         }
     };
 
@@ -452,6 +490,12 @@ const Turnero: React.FC<TurneroProps> = ({ onLogout, onNavigate }) => {
                 {error && (
                     <div className="w-full max-w-6xl mb-4 text-red-700 bg-red-50 border border-red-100 px-4 py-2.5 rounded-lg text-sm animate-shake">
                         {error}
+                    </div>
+                )}
+
+                {notice && (
+                    <div className="w-full max-w-6xl mb-4 text-emerald-700 bg-emerald-50 border border-emerald-100 px-4 py-2.5 rounded-lg text-sm animate-fadeIn">
+                        {notice}
                     </div>
                 )}
 
@@ -801,9 +845,10 @@ const Turnero: React.FC<TurneroProps> = ({ onLogout, onNavigate }) => {
                         <h2 className="text-xl font-bold text-gray-900 mb-6">Nuevo Horario</h2>
 
                         <div className="mb-4">
-                            <label className={labelClass}>Fecha</label>
+                            <label className={labelClass}>Fecha *</label>
                             <input
                                 type="date"
+                                required
                                 value={newForm.dia}
                                 onChange={(e) => setNewForm({ ...newForm, dia: e.target.value })}
                                 className={inputClass}
@@ -812,9 +857,11 @@ const Turnero: React.FC<TurneroProps> = ({ onLogout, onNavigate }) => {
 
                         <div className="grid grid-cols-2 gap-3 mb-4">
                             <div>
-                                <label className={labelClass}>Hora de entrada</label>
+                                <label className={labelClass}>Hora de entrada *</label>
                                 <input
                                     type="time"
+                                    required
+                                    step={3600}
                                     value={newForm.horario}
                                     onChange={(e) => setNewForm({ ...newForm, horario: e.target.value })}
                                     className={inputClass}
@@ -824,6 +871,7 @@ const Turnero: React.FC<TurneroProps> = ({ onLogout, onNavigate }) => {
                                 <label className={labelClass}>Hora de salida</label>
                                 <input
                                     type="time"
+                                    step={3600}
                                     value={newForm.horaFin}
                                     onChange={(e) => setNewForm({ ...newForm, horaFin: e.target.value })}
                                     className={inputClass}
@@ -899,7 +947,11 @@ const Turnero: React.FC<TurneroProps> = ({ onLogout, onNavigate }) => {
                             <button onClick={() => setShowNewModal(false)} className="bg-gray-200 hover:bg-gray-300 text-gray-900 px-6 py-2.5 rounded-lg text-sm font-medium transition-colors duration-150">
                                 Cancelar
                             </button>
-                            <button onClick={handleCreate} className="bg-gray-800 hover:bg-gray-700 active:scale-95 text-white px-6 py-2.5 rounded-lg text-sm font-medium transition-all duration-150">
+                            <button
+                                onClick={handleCreate}
+                                disabled={!newFormValid}
+                                className="bg-gray-800 hover:bg-gray-700 active:scale-95 text-white px-6 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-gray-800"
+                            >
                                 Aceptar
                             </button>
                         </div>

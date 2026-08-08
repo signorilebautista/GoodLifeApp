@@ -8,6 +8,9 @@ import { StatsModule } from './stats/stats.module';
 import { AuthModule } from './auth/auth.module';
 import { EjerciciosModule } from './ejercicios/ejercicios.module';
 import { RutinaModule } from './rutina/rutina.module';
+import { ComentariosModule } from './comentarios/comentarios.module';
+import { PlantillasModule } from './plantillas/plantillas.module';
+import { PushModule } from './push/push.module';
 
 @Module({
   imports: [
@@ -45,6 +48,9 @@ import { RutinaModule } from './rutina/rutina.module';
     AuthModule,
     EjerciciosModule,
     RutinaModule,
+    ComentariosModule,
+    PlantillasModule,
+    PushModule,
   ],
 })
 export class AppModule {}
