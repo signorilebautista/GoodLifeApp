@@ -188,6 +188,19 @@ const Turnero: React.FC<TurneroProps> = ({ onLogout, onNavigate }) => {
         return groups;
     }, [turnos]);
 
+    // La grilla "Horarios por sede" fijaba las filas en 8..22 (SCHEDULE_HOURS): un turno
+    // creado fuera de ese rango (ej. 23:00, o 07:00) se guardaba bien pero nunca aparecía
+    // ahí porque esa vista nunca llegaba a iterar esa hora. Extendemos las filas con
+    // cualquier hora que ya tenga un turno real ese día, además del rango fijo.
+    const scheduleHours = useMemo(() => {
+        const dia = searchFecha || todayISO();
+        const horasConTurno = turnos
+            .filter((t) => diaKey(t.dia) === dia)
+            .map((t) => Number(t.horario.slice(0, 2)))
+            .filter((h) => !Number.isNaN(h));
+        return Array.from(new Set([...SCHEDULE_HOURS, ...horasConTurno])).sort((a, b) => a - b);
+    }, [turnos, searchFecha]);
+
     const openDetail = (turno: Turno) => {
         setSelectedTurno(turno);
         setEditMode(false);
@@ -509,7 +522,7 @@ const Turnero: React.FC<TurneroProps> = ({ onLogout, onNavigate }) => {
                                     <div key={sede.idSede} className="bg-white rounded-2xl shadow-card p-4">
                                         <h3 className="text-sm font-bold text-gray-900 mb-3 text-center">{sede.nombreSede}</h3>
                                         <div className="flex flex-col gap-1.5">
-                                            {SCHEDULE_HOURS.map((hour) => {
+                                            {scheduleHours.map((hour) => {
                                                 const dia = searchFecha || todayISO();
                                                 const t = findTurnoSlot(dia, hour, sede.idSede);
                                                 return t ? (
